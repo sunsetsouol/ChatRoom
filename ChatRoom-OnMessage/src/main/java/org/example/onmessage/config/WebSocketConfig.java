@@ -1,7 +1,7 @@
 package org.example.onmessage.config;
 
 import lombok.RequiredArgsConstructor;
-import org.example.onmessage.handler.OnMessageHandler;
+import org.example.onmessage.handler.ws.OnMessageHandler;
 import org.example.onmessage.inteceptor.WebsocketInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;

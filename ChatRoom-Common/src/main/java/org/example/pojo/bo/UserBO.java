@@ -16,7 +16,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class UserBO {
 
-    private Long userId;
+    private Long id;
 
     private String username;
 
