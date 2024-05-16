@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.onmessage.constants.RabbitMQConstant;
 import org.example.onmessage.entity.AbstractMessage;
 import org.example.onmessage.entity.bo.MessageBO;
+import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.example.onmessage.mq.service.MQService;
 import org.example.onmessage.publish.event.MessageBusinessAckEvent;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -22,8 +23,8 @@ public class MessageBusinessAckListener {
 
     @EventListener(MessageBusinessAckEvent.class)
     public void messageBusinessAck(MessageBusinessAckEvent event) {
-        MessageBO message = event.getMessageBO();
-        message.setMessageType(AbstractMessage.MessageType.BUSINESS_ACK.getCode());
-        mqService.push2mq(message);
+        WsMessageDTO wsMessageDTO = event.getWsMessageDTO();
+        wsMessageDTO.setMessageType(AbstractMessage.MessageType.BUSINESS_ACK.getCode());
+        mqService.push2mq(wsMessageDTO);
     }
 }

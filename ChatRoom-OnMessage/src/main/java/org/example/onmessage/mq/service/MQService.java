@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.onmessage.constants.RabbitMQConstant;
 import org.example.onmessage.constants.RedisConstant;
 import org.example.onmessage.entity.bo.MessageBO;
+import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.example.onmessage.service.common.RedisCacheService;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
@@ -29,9 +30,9 @@ public class MQService {
     private final RabbitTemplate rabbitTemplate;
     private final String EXCHANGE = RabbitMQConstant.WS_EXCHANGE;
     private final String ROUTINGKEY = RabbitMQConstant.WS_ROUTING_KEY;
-    public void push2mq(MessageBO messageBO) {
+    public void push2mq(WsMessageDTO wsMessageDTO) {
         Message message = MessageBuilder
-                .withBody(JSON.toJSONString(messageBO).getBytes(StandardCharsets.UTF_8))
+                .withBody(JSON.toJSONString(wsMessageDTO).getBytes(StandardCharsets.UTF_8))
                 .setDeliveryMode(MessageDeliveryMode.PERSISTENT)
                 .build();
 

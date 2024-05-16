@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.onmessage.entity.AbstractMessage;
 import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.onmessage.limiter.SlidingWindowLimiter;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DownLinkMessageRoute {
     private final MessageBuffer messageBuffer;
+    private final SlidingWindowLimiter slidingWindowLimiter;
 
     /**
      * 下行消息推送
@@ -27,7 +29,7 @@ public class DownLinkMessageRoute {
         if (wsMessageDTO.getMessageType().equals(AbstractMessage.MessageType.GET_MESSAGE.getCode())){
             messageBuffer.getUnreadMessage(wsMessageDTO);
         }else {
-            messageBuffer.handleMsg(wsMessageDTO);
+            slidingWindowLimiter.handleMessage(wsMessageDTO);
         }
     }
 }

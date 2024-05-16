@@ -21,4 +21,9 @@ public interface RedisConstant {
     String DEL = "del";
     String SINGLE_CHAT = "single_chat:";
     String INBOX = "inbox:";
+
+    String CLIENT_ID_MAP = "clientIdMap:";
+
+
+    String GROUP_CHAT = "group_chat:";
 }

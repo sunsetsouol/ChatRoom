@@ -7,11 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.onmessage.adapter.MessageAdapter;
 import org.example.onmessage.constants.RabbitMQConstant;
 import org.example.onmessage.entity.AbstractMessage;
-import org.example.onmessage.entity.bo.MessageBO;
 import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.example.onmessage.handler.ws.GlobalWsMap;
 import org.example.onmessage.publish.PublishEventUtils;
 import org.example.onmessage.push.PushWorker;
+import org.example.onmessage.route.MessageBuffer;
 import org.example.onmessage.service.common.RedisCacheService;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.core.Message;
@@ -32,9 +32,9 @@ import java.io.IOException;
 @RequiredArgsConstructor
 @Slf4j
 public class RabbitMQListener {
-    private final RedisCacheService redisCacheService;
     private final PublishEventUtils publishEventUtils;
     private final PushWorker pushWorker;
+    private final MessageBuffer messageBuffer;
     @RabbitListener(
             bindings = @QueueBinding(
                     value = @Queue(value = RabbitMQConstant.WS_QUEUE),
@@ -44,18 +44,18 @@ public class RabbitMQListener {
     )
     public void receive(Message message, Channel channel) throws IOException {
         byte[] body = message.getBody();
-        MessageBO messageBO = JSON.parseObject(body, MessageBO.class);
+        WsMessageDTO wsMessageDTO = JSON.parseObject(body, WsMessageDTO.class);
 
-        log.info("收到消息：{}", messageBO);
-        if (doBusiness(messageBO)) {
+        log.info("收到消息：{}", wsMessageDTO);
+        if (doBusiness(wsMessageDTO)) {
             channel.basicAck(message.getMessageProperties().getDeliveryTag(), true);
         } else {
             channel.basicNack(message.getMessageProperties().getDeliveryTag(), false, true);
         }
     }
 
-    public Boolean doBusiness(MessageBO messageBO) {
-        if (messageBO.getMessageType().equals(AbstractMessage.MessageType.BUSINESS_ACK.getCode())){
+    public Boolean doBusiness(WsMessageDTO wsMessageDTO) {
+        if (wsMessageDTO.getMessageType().equals(AbstractMessage.MessageType.BUSINESS_ACK.getCode())){
             // ACK
 //            ClientMessageAck ack = ClientMessageAck
 //                    .builder()
@@ -65,13 +65,14 @@ public class RabbitMQListener {
 //                    .isAck(true)
 //                    .build();
 //            GlobalWsMap.sendText(messageBO.getFromUserId(), JSON.toJSONString(ack));
-            WsMessageDTO businessAckMessage = MessageAdapter.getBusinessAckMessage(messageBO);
-            GlobalWsMap.sendText(messageBO.getFromUserId(), JSON.toJSONString(businessAckMessage));
+            WsMessageDTO businessAckMessage = MessageAdapter.getBusinessAckMessage(wsMessageDTO);
+            GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), JSON.toJSONString(businessAckMessage));
             return true;
         } else {
             try {
-                pushWorker.push(messageBO);
-                publishEventUtils.pushMessageAck(this, messageBO);
+                messageBuffer.handleMsg(wsMessageDTO);
+//                pushWorker.push(wsMessageDTO);
+//                publishEventUtils.pushMessageAck(this, wsMessageDTO);
                 return true;
             } catch (Exception e) {
                 return false;

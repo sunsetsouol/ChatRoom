@@ -1,8 +1,6 @@
 package org.example.onmessage.service.common;
 
-import cn.hutool.core.annotation.Link;
 import com.alibaba.fastjson.JSON;
-import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -267,6 +265,31 @@ public class RedisCacheService {
         stringRedisTemplate.opsForHash().put(key, hashKey, JSON.toJSONString(hashValue));
     }
 
+    /**
+     * 从key哈希表中存hashKey-hashValue
+     * @param key       redis键
+     * @param hashMap   hash map
+     */
+    public void putAllHash(final String key, Map<String, String > hashMap) {
+        stringRedisTemplate.opsForHash().putAll(key, hashMap);
+    }
+
+    /**
+     * 从key哈希表中存hashKey-hashValue
+     * @param key       redis键
+     * @param hashKey   hash key
+     * @param tClass    hash class
+     * @return  hash value
+     * @param <T>   hash class
+     */
+    public<T> T getHashValue(final String key, final String hashKey, Class<T> tClass) {
+        String json = (String) stringRedisTemplate.opsForHash().get(key, hashKey);
+        if (StringUtils.isEmpty(json)) {
+            return null;
+        }
+        return JSON.parseObject(json, tClass);
+    }
+
 
     /**
      * 移除hash表中元素
@@ -422,12 +445,12 @@ public class RedisCacheService {
         return redisTemplate.opsForHash().values(key);
     }
 
-    public <T> Set<T> zget(String key, Long globalMessageId, Class<T> tClass) {
-        Set<ZSetOperations.TypedTuple<Object>> set = redisTemplate.opsForZSet().rangeByScoreWithScores(key, globalMessageId, globalMessageId);
+    public <T> Set<T> zget(String key, Long score, Class<T> tClass) {
+        Set<ZSetOperations.TypedTuple<String>> set = stringRedisTemplate.opsForZSet().rangeByScoreWithScores(key, score, score);
         if (CollectionUtils.isEmpty(set)) {
             return new LinkedHashSet<>();
         }
-        return set.parallelStream().map(o -> JSON.parseObject((String) o.getValue(), tClass)).collect(Collectors.toSet());
+        return set.parallelStream().map(o -> JSON.parseObject(o.getValue(), tClass)).collect(Collectors.toSet());
     }
 }
 

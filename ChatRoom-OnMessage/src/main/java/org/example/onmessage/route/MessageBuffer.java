@@ -8,7 +8,6 @@ import org.example.IdStrategy.IdGen.IdGenType;
 import org.example.IdStrategy.IdGen.IdGenerator;
 import org.example.IdStrategy.IdGen.IdGeneratorStrategyFactory;
 import org.example.constant.GlobalConstants;
-import org.example.exception.BusinessException;
 import org.example.onmessage.adapter.MessageAdapter;
 import org.example.onmessage.constants.RedisConstant;
 import org.example.onmessage.dao.MsgReader;
@@ -17,17 +16,13 @@ import org.example.onmessage.entity.AbstractMessage;
 import org.example.onmessage.entity.bo.MessageBO;
 import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.example.onmessage.handler.ws.GlobalWsMap;
-import org.example.onmessage.mq.service.MQService;
-import org.example.onmessage.service.common.RedisCacheService;
-import org.example.pojo.vo.ResultStatusEnum;
+import org.example.onmessage.publish.PublishEventUtils;
+import org.example.onmessage.push.PushWorker;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.LongStream;
@@ -46,27 +41,29 @@ public class MessageBuffer {
     private final RedissonClient redissonClient;
     private final MsgReader msgReader;
     private final MsgWriter msgWriter;
-    private final MQService mqService;
-    private final RedisCacheService redisCacheService;
+    private final PushWorker pushWorker;
+    private final PublishEventUtils publishEventUtils;
     private final IdGeneratorStrategyFactory idGeneratorStrategyFactory;
 //    private final IdGenerator idGenerator = idGeneratorStrategyFactory.getIdGeneratorStrategy(IdGenType.SNOWFLAKE.type);
 
 
     public void handleMsg(WsMessageDTO wsMessageDTO) {
+
         // 发送者id
         Long fromUserId = wsMessageDTO.getFromUserId();
 
         Integer device = wsMessageDTO.getDevice();
 
-        RLock lock = redissonClient.getLock(RedisConstant.BUFFER_PREFIX + device + ":" + fromUserId);
+        RLock lock = redissonClient.getLock(RedisConstant.BUFFER_PREFIX + fromUserId);
 
         try {
             if (!lock.tryLock(RedisConstant.LOCK_TIME, RedisConstant.WAIT_TIME, TimeUnit.SECONDS)) {
                 log.warn("消息发送太频繁，直接舍弃，等客户端重发");
-                throw new BusinessException(ResultStatusEnum.FREQUENT_SEND);
+                return;
             }
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            log.warn("获取锁失败", e);
+            return;
         }
 
         try {
@@ -74,55 +71,43 @@ public class MessageBuffer {
 
             Long clientMessageId = wsMessageDTO.getClientMessageId();
 
+            // TODO：既然已经有了限流器就不需要在丢弃了
             if (clientMessageId - curMaxId > BUFFER_SIZE) {
                 // 超出缓存区直接抛弃，等客户端重发
                 log.warn("消息超过缓存区，直接舍弃，等客户端重发");
             } else {
-                // 消息没有超出缓存区，加入缓存
+                // 消息没有超出缓存区，加入缓存，set自动去重
                 msgWriter.saveTem(wsMessageDTO);
-//                MessageBO messageBO = BeanUtil.copyProperties(wsMessageDTO, MessageBO.class);
-//                messageBO.setId(idGenerator.getLongId());
-//                msgWriter.saveTem(wsMessageDTO);
-//                mqService.push2mq(JSON.toJSONString(wsMessageDTO), RabbitMQConstant.WS_EXCHANGE, "ws.a");
+
+
                 if (clientMessageId == curMaxId + 1) {
                     // 消息有序到达，直接发送当前消息，并且发送缓存区有序的消息
                     log.info("{} 消息 {} 有序到达，直接发送当前消息，并且发送缓存区有序的消息", AbstractMessage.DeviceType.getType(device), clientMessageId);
                     // 更新当前用户设备最大id
-                    List<MessageBO> messageList = getMessage(device, fromUserId, clientMessageId, wsMessageDTO);
-                    CLIENT_MAX_ID_MAP.get(fromUserId)[device] = messageList.get(messageList.size() - 1).getClientMessageId();
-                    // 推到mq
-//                    mqService.push2mq(JSON.toJSONString(messageList), RabbitMQConstant.WS_EXCHANGE, "ws.a");
-                    messageList.forEach(mqService::push2mq);
-                    // 持久化存储
-                    msgWriter.saveDurably(messageList);
+                    List<MessageBO> messageList = getMessage(device, fromUserId, clientMessageId);
+                    // 有序到达直接推给用户并且保存到持久化
+//                    pushWorker.push(messageList);
+
+                    messageList.forEach(pushWorker::push);
+                    MessageBO lastMessage = messageList.get(messageList.size() - 1);
+//                    msgWriter.updateMaxClientId(fromUserId, device, lastMessage.getClientMessageId());
+                    CLIENT_MAX_ID_MAP.get(fromUserId)[device] = lastMessage.getClientMessageId();
                 } else if (clientMessageId <= curMaxId) {
                     // 重复消息，直接重发
                     log.info("{} 消息 {} 重复到达，直接重发", AbstractMessage.DeviceType.getType(device), clientMessageId);
 
+                    // 找到消息重发
                     MessageBO message = getMessageByClientId(wsMessageDTO);
                     if (Objects.nonNull(message)) {
-                        mqService.push2mq(message);
+                        pushWorker.push(message);
+                    } else {
+                        // 如果找不到消息说明已经ack了
+                        publishEventUtils.pushMessageAck(this, wsMessageDTO);
                     }
-                    wsMessageDTO.setClientMessageId(curMaxId);
-                    // 设置ack
-//                    redisCacheService.setCacheObject(RedisConstant.ACK + fromUserId + ":" + message.getId(), "", RedisConstant.ACK_EXPIRE_TIME, TimeUnit.SECONDS);
-                } else {
-                    // 剩下的情况就是无序到达，上面直接缓存了ack就行了
-                    wsMessageDTO.setClientMessageId(curMaxId);
+
                 }
+                // 剩下无序到达情况上面保存后就可以了
 
-
-                // ack
-//                ClientMessageAck ack = ClientMessageAck
-//                        .builder()
-//                        .clientMessageId(clientMessageId)
-//                        .device(device)
-//                        .ackType(ClientMessageAck.AckType.FIRST_ACK.getCode())
-//                        .isAck(true)
-//                        .build();
-//                GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), JSON.toJSONString(ack));
-                WsMessageDTO ack1Message = MessageAdapter.getAck1Message(wsMessageDTO);
-                GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), JSON.toJSONString(ack1Message));
             }
 
         } catch (Exception e) {
@@ -136,13 +121,14 @@ public class MessageBuffer {
     }
 
     public MessageBO getMessageByClientId(WsMessageDTO wsMessageDTO) {
-        // 为什么不去tem根据score找呢？因为没有全局唯一id
-        List<MessageBO> messageBOList = msgReader.getWindowsMsg(RedisConstant.MESSAGE + wsMessageDTO.getFromUserId(), 0, Long.MAX_VALUE, 0L, BUFFER_SIZE, MessageBO.class);
-        return messageBOList.stream().filter(messageBO -> wsMessageDTO.getClientMessageId().equals(messageBO.getClientMessageId())).findFirst().orElse(null);
+//        // 为什么不去tem根据score找呢？因为没有全局唯一id
+//        List<MessageBO> messageBOList = msgReader.getWindowsMsg(RedisConstant.MESSAGE + wsMessageDTO.getFromUserId(), 0, Long.MAX_VALUE, 0L, BUFFER_SIZE, MessageBO.class);
+//        return messageBOList.stream().filter(messageBO -> wsMessageDTO.getClientMessageId().equals(messageBO.getClientMessageId())).findFirst().orElse(null);
+        return msgReader.getMessageByClientId(wsMessageDTO);
 
     }
 
-    private List<MessageBO> getMessage(Integer device, Long fromUserId, Long clientId, WsMessageDTO wsMessageDTO) {
+    private List<MessageBO> getMessage(Integer device, Long fromUserId, Long clientId) {
 
         IdGenerator idGeneratorStrategy = idGeneratorStrategyFactory.getIdGeneratorStrategy(IdGenType.SNOWFLAKE.type);
 
@@ -155,13 +141,13 @@ public class MessageBuffer {
         List<MessageBO> result = new ArrayList<>();
         int subIndex = 1;
 
-        collect.add(0, wsMessageDTO);
-        MessageBO message = BeanUtil.copyProperties(wsMessageDTO, MessageBO.class);
-        message.setId(idGeneratorStrategy.getLongId());
-        result.add(message);
+
+        MessageBO first = BeanUtil.copyProperties(collect.get(0), MessageBO.class);
+        first.setId(idGeneratorStrategy.getLongId());
+        result.add(first);
 
         // 找到连续的消息
-        Long pre = wsMessageDTO.getClientMessageId();
+        Long pre = collect.get(0).getClientMessageId();
         Long cur;
         for (int i = 1; i < collect.size(); i++) {
             cur = collect.get(i).getClientMessageId();
@@ -170,14 +156,16 @@ public class MessageBuffer {
             }
             pre = cur;
             MessageBO messageBO = BeanUtil.copyProperties(collect.get(i), MessageBO.class);
-            messageBO.setId(idGeneratorStrategy.getLongId());
+            Long messageId = idGeneratorStrategy.getLongId();
+            messageBO.setId(messageId);
             subIndex = i + 1;
+            result.add(messageBO);
         }
-
         return result.subList(0, subIndex);
     }
 
     private Long getMaxClientId(Long fromUserId, Integer device) {
+//        return msgReader.getMaxClientId(fromUserId, device);
         Long[] clientIds = CLIENT_MAX_ID_MAP.get(fromUserId);
 
         Long currentMaxId = 0L;
@@ -185,72 +173,10 @@ public class MessageBuffer {
         // 如果clientIds是null，可能是第一次获取，也可能是刚刚分配到当前机器
         if (Objects.isNull(clientIds)) {
             // 先从redis尝试获取
-
-            List<MessageBO> msgList = msgReader.getMsg(RedisConstant.MESSAGE + fromUserId, BUFFER_SIZE, MessageBO.class);
-            LongStream longStream = msgList.stream().filter(msg -> device.equals(msg.getDevice())).mapToLong(WsMessageDTO::getClientMessageId);
-            currentMaxId = longStream.max().orElse(0L);
-
-            Long[] deviceClientIds = {0L, 0L};
-            deviceClientIds[device] = currentMaxId;
+            Long webMaxClientId = msgReader.getMaxClientId(fromUserId, AbstractMessage.DeviceType.WEB.getCode());
+            Long mobileMaxClientId = msgReader.getMaxClientId(fromUserId, AbstractMessage.DeviceType.MOBILE.getCode());
+            Long[] deviceClientIds = {webMaxClientId, mobileMaxClientId};
             CLIENT_MAX_ID_MAP.put(fromUserId, deviceClientIds);
-
-            // 如果不为空，更新map
-
-//            Set<ZSetOperations.TypedTuple<Object>> zset =
-//                    msgReader.getWindowsMsg(RedisConstant.MESSAGE + fromUserId, 0L, Long.MAX_VALUE, 0L, BUFFER_SIZE, MessageBO.class);
-//
-//            List<ZSetOperations.TypedTuple<Object>> collect = zset.stream().filter(zSetOperation -> device.equals(((MessageBO) zSetOperation.getValue()).getDevice())).collect(Collectors.toList());
-//            if (collect.isEmpty()) {
-//                // 如果是空，应该是第一次发送
-//                CLIENT_MAX_ID_MAP.put(fromUserId, new Long[]{0L, 0L});
-//                return currentMaxId;
-//            }
-//            MessageBO value = (MessageBO) collect.get(collect.size() - 1).getValue();
-//            return value.getClientMessageId();
-
-
-//            if (zset.isEmpty()){
-//                // 如果是空，应该是第一次发送
-//                CLIENT_MAX_ID_MAP.put(fromUserId, new Long[]{0L, 0L});
-//                return new MessageHistoryBO(currentMaxId, msgList);
-//            }
-//            // 如果不为空，找到当前设别的缓存
-//            msgList.addAll(zset);
-
-//            long asLong = msgList.stream().filter(zSetOperation -> device.equals(((MessageBO) zSetOperation.getValue()).getDevice())).mapToLong(zSetOperation -> ((MessageBO) zSetOperation.getValue()).getClientMessageId()).max().getAsLong();
-
-//            Set<ZSetOperations.TypedTuple<Object>> zset =
-//                    msgReader.getWindowsMsg(RedisConstant.TEM_MESSAGE + device + ":" + fromUserId, Long.MAX_VALUE, 0L, BUFFER_SIZE, WsMessageDTO.class);
-//            // 如果还是空，应该是第一次发送
-//            if (zset.isEmpty()){
-//                // 初始化map
-//                CLIENT_MAX_ID_MAP.put(fromUserId, new Long[]{0L, 0L});
-//                return new MessageHistoryBO(currentMaxId, msgList);
-//            }
-//            // 如果不是空，找到最大的连续的clientId
-//            msgList.addAll(zset);
-//
-//            double pre = msgList.get(0).getScore();
-//            int start = 1;
-//            // 如果消息比缓冲区数量小，那么有可能是第一次发送，这时候要从0开始
-//            if (msgList.size() < BUFFER_SIZE){
-//                start = 0;
-//                pre = 0;
-//            }
-//
-//            double cur ;
-//
-//            for (int i = start; i < msgList.size(); i++) {
-//                cur = msgList.get(i).getScore();
-//                if ((cur - pre != 1)){
-//                    break;
-//                }
-//                pre = cur;
-//            }
-//            currentMaxId = (long) pre;
-//            Long[] deviceClientIds = {0L, 0L};
-//            deviceClientIds[device] = currentMaxId;
-//            CLIENT_MAX_ID_MAP.put(fromUserId, deviceClientIds);
 
         } else {
             currentMaxId = clientIds[device];
@@ -259,6 +185,7 @@ public class MessageBuffer {
     }
 
     public void getUnreadMessage(WsMessageDTO wsMessageDTO) {
+        // TODO： 不应该是clientId查找
         List<Long> needToUpdate = msgReader.getWindowsMsg(RedisConstant.INBOX + wsMessageDTO.getFromUserId(), wsMessageDTO.getClientMessageId(), Long.MAX_VALUE, 0L, GlobalConstants.MAX_FRIEND, Long.class);
         List<MessageBO> result = new ArrayList<>();
         for (Long userId : needToUpdate) {
@@ -270,7 +197,7 @@ public class MessageBuffer {
             result.addAll(messageBOS);
         }
         if (!result.isEmpty()) {
-            result.forEach(message ->{
+            result.forEach(message -> {
                 GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), JSON.toJSONString(message));
             });
         }

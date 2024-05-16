@@ -2,6 +2,7 @@ package org.example.onmessage.publish.event;
 
 import lombok.Getter;
 import org.example.onmessage.entity.bo.MessageBO;
+import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.stereotype.Component;
 
@@ -12,10 +13,10 @@ import org.springframework.stereotype.Component;
  */
 @Getter
 public class MessageBusinessAckEvent extends ApplicationEvent {
-    private MessageBO messageBO;
-    public MessageBusinessAckEvent(Object source, MessageBO messageBO) {
+    private WsMessageDTO wsMessageDTO;
+    public MessageBusinessAckEvent(Object source, WsMessageDTO wsMessageDTO) {
         super(source);
-        this.messageBO = messageBO;
+        this.wsMessageDTO = wsMessageDTO;
     }
 
 }

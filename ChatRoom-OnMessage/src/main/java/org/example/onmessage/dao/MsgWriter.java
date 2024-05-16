@@ -10,6 +10,7 @@ import org.example.pojo.vo.ResultStatusEnum;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -60,8 +61,28 @@ public class MsgWriter {
         }
         // 保存消息缓存
         redisCacheService.addZSet(key, messageBO, messageBO.getId());
-        // 保存到收件箱
-        redisCacheService.addZSet(RedisConstant.INBOX + fromUserId, toUserId, messageBO.getId());
-        redisCacheService.addZSet(RedisConstant.INBOX + toUserId, fromUserId, messageBO.getId());
     }
+
+//    public void saveMessageIdMap(Long fromUserId, Integer device, Map<String, String> messageIdMap) {
+//        redisCacheService.addZSet(RedisConstant.CLIENT_ID_MAP + fromUserId + ":" + device, messageIdMap);
+//    }
+
+    public void saveMessageIdMap(Long fromUserId, Integer device, Long clientMessageId, Long messageId) {
+        redisCacheService.addZSet(RedisConstant.CLIENT_ID_MAP + fromUserId + ":" + device, messageId, clientMessageId);
+    }
+
+    public void saveToInboxMsg(MessageBO message) {
+        // 保存到收件箱
+        redisCacheService.addZSet(RedisConstant.INBOX + message.getFromUserId(), message.getTargetId(), message.getId());
+        redisCacheService.addZSet(RedisConstant.INBOX + message.getTargetId(), message.getFromUserId(), message.getId());
+    }
+
+//    public void updateMaxClientId(Long fromUserId, Integer device, Long clientMessageId) {
+//        Long[] cacheObject = redisCacheService.getCacheObject(RedisConstant.CLIENT_ID + fromUserId, Long[].class);
+//        if (cacheObject == null) {
+//            cacheObject = new Long[]{0L, 0L};
+//        }
+//        cacheObject[device] = clientMessageId;
+//        redisCacheService.setCacheObject(RedisConstant.CLIENT_ID + fromUserId, cacheObject);
+//    }
 }

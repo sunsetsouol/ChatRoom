@@ -56,4 +56,22 @@ public class GlobalWsMap {
 //        }
 
     }
+
+    public static Boolean sendText(Long fromUserId, Integer device, String jsonString) {
+        ConcurrentHashMap<Long, WebSocketSession> userSessionMap = SESSION_MAP.get(device);
+        if (Objects.isNull(userSessionMap)) {
+            log.error("设备类型错误：{}", device);
+            return false;
+        }
+        WebSocketSession webSocketSession = userSessionMap.get(fromUserId);
+        if (Objects.nonNull(webSocketSession) && webSocketSession.isOpen()){
+            try {
+                webSocketSession.sendMessage(new TextMessage(jsonString));
+            } catch (IOException e) {
+                log.error("发送消息失败", e);
+                return false;
+            }
+        }
+        return true;
+    }
 }

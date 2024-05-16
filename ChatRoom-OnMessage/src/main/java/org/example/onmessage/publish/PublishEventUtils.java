@@ -3,6 +3,7 @@ package org.example.onmessage.publish;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.onmessage.entity.bo.MessageBO;
+import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.example.onmessage.mq.listener.RabbitMQListener;
 import org.example.onmessage.publish.event.DealMessageEvent;
 import org.example.onmessage.publish.event.MessageBusinessAckEvent;
@@ -25,7 +26,7 @@ public class PublishEventUtils {
         applicationEventPublisher.publishEvent(new DealMessageEvent(source, messageBO));
     }
 
-    public void pushMessageAck(Object source, MessageBO messageBO) {
-        applicationEventPublisher.publishEvent(new MessageBusinessAckEvent(source, messageBO));
+    public void pushMessageAck(Object source, WsMessageDTO wsMessageDTO) {
+        applicationEventPublisher.publishEvent(new MessageBusinessAckEvent(source, wsMessageDTO));
     }
 }
