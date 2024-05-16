@@ -2,6 +2,7 @@ package org.example.onmessage.route;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.onmessage.entity.AbstractMessage;
 import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,10 @@ public class DownLinkMessageRoute {
      */
     public void downLinkMessagePush(WsMessageDTO wsMessageDTO) {
         log.info("下行消息推送:{}", wsMessageDTO);
-        messageBuffer.handleMsg(wsMessageDTO);
+        if (wsMessageDTO.getMessageType().equals(AbstractMessage.MessageType.GET_MESSAGE.getCode())){
+            messageBuffer.getUnreadMessage(wsMessageDTO);
+        }else {
+            messageBuffer.handleMsg(wsMessageDTO);
+        }
     }
 }

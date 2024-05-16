@@ -26,4 +26,7 @@ public class MessageAdapter {
         return copy;
     }
 
+    public static WsMessageDTO getUnreadAckMessage(WsMessageDTO wsMessageDTO) {
+        return getAckWsMessageDTO(wsMessageDTO, AbstractMessage.MessageType.GET_MESSAGE_ACK);
+    }
 }

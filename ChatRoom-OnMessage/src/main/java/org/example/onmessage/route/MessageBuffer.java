@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.IdStrategy.IdGen.IdGenType;
 import org.example.IdStrategy.IdGen.IdGenerator;
 import org.example.IdStrategy.IdGen.IdGeneratorStrategyFactory;
+import org.example.constant.GlobalConstants;
 import org.example.exception.BusinessException;
 import org.example.onmessage.adapter.MessageAdapter;
 import org.example.onmessage.constants.RedisConstant;
@@ -21,13 +22,14 @@ import org.example.onmessage.service.common.RedisCacheService;
 import org.example.pojo.vo.ResultStatusEnum;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 /**
@@ -104,7 +106,7 @@ public class MessageBuffer {
                     wsMessageDTO.setClientMessageId(curMaxId);
                     // 设置ack
 //                    redisCacheService.setCacheObject(RedisConstant.ACK + fromUserId + ":" + message.getId(), "", RedisConstant.ACK_EXPIRE_TIME, TimeUnit.SECONDS);
-                }else {
+                } else {
                     // 剩下的情况就是无序到达，上面直接缓存了ack就行了
                     wsMessageDTO.setClientMessageId(curMaxId);
                 }
@@ -123,7 +125,7 @@ public class MessageBuffer {
                 GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), JSON.toJSONString(ack1Message));
             }
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             log.error("消息处理失败", e);
 
@@ -133,7 +135,7 @@ public class MessageBuffer {
 
     }
 
-    public MessageBO getMessageByClientId(WsMessageDTO wsMessageDTO){
+    public MessageBO getMessageByClientId(WsMessageDTO wsMessageDTO) {
         // 为什么不去tem根据score找呢？因为没有全局唯一id
         List<MessageBO> messageBOList = msgReader.getWindowsMsg(RedisConstant.MESSAGE + wsMessageDTO.getFromUserId(), 0, Long.MAX_VALUE, 0L, BUFFER_SIZE, MessageBO.class);
         return messageBOList.stream().filter(messageBO -> wsMessageDTO.getClientMessageId().equals(messageBO.getClientMessageId())).findFirst().orElse(null);
@@ -169,7 +171,7 @@ public class MessageBuffer {
             pre = cur;
             MessageBO messageBO = BeanUtil.copyProperties(collect.get(i), MessageBO.class);
             messageBO.setId(idGeneratorStrategy.getLongId());
-            subIndex = i+1;
+            subIndex = i + 1;
         }
 
         return result.subList(0, subIndex);
@@ -185,7 +187,7 @@ public class MessageBuffer {
             // 先从redis尝试获取
 
             List<MessageBO> msgList = msgReader.getMsg(RedisConstant.MESSAGE + fromUserId, BUFFER_SIZE, MessageBO.class);
-            LongStream longStream = msgList.stream().filter(msg -> device.equals( msg.getDevice())).mapToLong(WsMessageDTO::getClientMessageId);
+            LongStream longStream = msgList.stream().filter(msg -> device.equals(msg.getDevice())).mapToLong(WsMessageDTO::getClientMessageId);
             currentMaxId = longStream.max().orElse(0L);
 
             Long[] deviceClientIds = {0L, 0L};
@@ -254,5 +256,24 @@ public class MessageBuffer {
             currentMaxId = clientIds[device];
         }
         return currentMaxId;
+    }
+
+    public void getUnreadMessage(WsMessageDTO wsMessageDTO) {
+        List<Long> needToUpdate = msgReader.getWindowsMsg(RedisConstant.INBOX + wsMessageDTO.getFromUserId(), wsMessageDTO.getClientMessageId(), Long.MAX_VALUE, 0L, GlobalConstants.MAX_FRIEND, Long.class);
+        List<MessageBO> result = new ArrayList<>();
+        for (Long userId : needToUpdate) {
+            String key = RedisConstant.SINGLE_CHAT +
+                    (wsMessageDTO.getFromUserId() > userId
+                            ? userId + ":" + wsMessageDTO.getFromUserId()
+                            : wsMessageDTO.getFromUserId() + ":" + userId);
+            List<MessageBO> messageBOS = msgReader.getWindowsMsg(key, wsMessageDTO.getClientMessageId(), Long.MAX_VALUE, 0L, BUFFER_SIZE, MessageBO.class);
+            result.addAll(messageBOS);
+        }
+        if (!result.isEmpty()) {
+            result.forEach(message ->{
+                GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), JSON.toJSONString(message));
+            });
+        }
+        GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), JSON.toJSONString(MessageAdapter.getUnreadAckMessage(wsMessageDTO)));
     }
 }

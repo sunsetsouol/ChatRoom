@@ -23,8 +23,8 @@ public enum ResultStatusEnum {
     GROUP_ID_EMPTY(2005, "群聊id不能为空"),
     FREQUENT_SEND(2006, "消息发送频繁"),
     DEVICE_EMPTY(2007, "设备不能为空"),
-    MESSAGE_NOT_FOUND(2008, "消息找不到了")
-    ;
+    MESSAGE_NOT_FOUND(2008, "消息找不到了"),
+    CLIENT_MESSAGE_ID_EMPTY(2009, "客户端消息id不能为空"),;
 
     private final Integer code;
 

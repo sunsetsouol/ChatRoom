@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 public class MsgReader {
     private final RedisCacheService redisCacheService;
 
+    // TODO：细分一点，不要全用这个函数
     public <T> List<T> getWindowsMsg(String key, long min, long max, long offset, long bufferSize, Class<T> tclass) {
         Set<ZSetOperations.TypedTuple<String>> zget = redisCacheService.zget(key, min, max, offset, bufferSize, tclass);
         return zget.stream().map(typedTuple -> JSON.parseObject(typedTuple.getValue(), tclass)).collect(Collectors.toList());

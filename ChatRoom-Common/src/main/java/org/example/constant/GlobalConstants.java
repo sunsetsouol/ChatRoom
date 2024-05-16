@@ -9,4 +9,6 @@ public interface GlobalConstants {
     String TOKEN_HEAD = "Authorization";
 
     String TOKEN_PREFIX = "Bearer ";
+
+    Integer MAX_FRIEND = 1000;
 }

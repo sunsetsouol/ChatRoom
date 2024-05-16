@@ -58,8 +58,6 @@ public class WsMessageDTO extends AbstractMessage {
     private byte[] byteArray;
 
 
-
-
     @AllArgsConstructor
     @Getter
     public enum MetaDataType {
@@ -67,8 +65,7 @@ public class WsMessageDTO extends AbstractMessage {
         IMAGE(2, "图片"),
         FILE(3, "文件"),
         VOICE(4, "语音"),
-        VIDEO(5, "视频")
-        ;
+        VIDEO(5, "视频");
         private final Integer code;
         private final String type;
         private static Map<Integer, String> typeMap = new HashMap<>();
@@ -88,7 +85,14 @@ public class WsMessageDTO extends AbstractMessage {
         }
 
     }
+
     public void validate() {
+        if (Objects.isNull(clientMessageId)) {
+            throw new BusinessException(ResultStatusEnum.CLIENT_MESSAGE_ID_EMPTY);
+        }
+        if (getMessageType().equals(MessageType.GET_MESSAGE.getCode())) {
+            return;
+        }
         if (metaDataType.equals(MetaDataType.TEXT.getCode())) {
             if (!StringUtils.hasText(message)) {
                 throw new BusinessException(ResultStatusEnum.EMPTY_MESSAGE_TEXT);
@@ -105,7 +109,7 @@ public class WsMessageDTO extends AbstractMessage {
             if (Objects.isNull(targetId)) {
                 throw new BusinessException(ResultStatusEnum.RECEIVER_USER_ID_EMPTY);
             }
-        }else if (this.getMessageType().equals(AbstractMessage.MessageType.GROUP.getCode())) {
+        } else if (this.getMessageType().equals(AbstractMessage.MessageType.GROUP.getCode())) {
             if (Objects.isNull(targetId)) {
                 throw new BusinessException(ResultStatusEnum.GROUP_ID_EMPTY);
             }
