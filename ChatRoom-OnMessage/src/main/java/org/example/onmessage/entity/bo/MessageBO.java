@@ -21,11 +21,4 @@ public class MessageBO extends WsMessageDTO {
     private Long id;
 
 
-    public static MessageBO getAckMessage(MessageBO messageBO) {
-        MessageBO copy = new MessageBO();
-        copy.setClientMessageId(messageBO.getClientMessageId());
-        copy.setDevice(messageBO.getDevice());
-        copy.setMessageType(MessageType.BUSINESS_ACK.getCode());
-        return copy;
-    }
 }

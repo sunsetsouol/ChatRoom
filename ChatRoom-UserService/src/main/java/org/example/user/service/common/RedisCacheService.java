@@ -1,4 +1,4 @@
-package org.example.onmessage.service.common;
+package org.example.user.service.common;
 
 import com.alibaba.fastjson.JSON;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -141,15 +141,6 @@ public class RedisCacheService {
      */
     public Boolean containsCacheSet(final String key, final Object value) {
         return stringRedisTemplate.opsForSet().isMember(key, JSON.toJSONString(value));
-    }
-
-    /**
-     * 获取sst大小
-     * @param key 键
-     * @return  大小
-     */
-    public Long getSetSize(final String key) {
-        return stringRedisTemplate.opsForSet().size(key);
     }
 
     /**
@@ -460,22 +451,6 @@ public class RedisCacheService {
             return new LinkedHashSet<>();
         }
         return set.parallelStream().map(o -> JSON.parseObject(o.getValue(), tClass)).collect(Collectors.toSet());
-    }
-
-    public <T> Set<T> gAllSet(String key, Class<T> tClass) {
-        Set<String> members = stringRedisTemplate.opsForSet().members(key);
-        if (CollectionUtils.isEmpty(members)) {
-            return new LinkedHashSet<>();
-        }
-        return members.stream().map(o -> JSON.parseObject(o, tClass)).collect(Collectors.toSet());
-    }
-
-    public <T> T getFirstZSetScore(String key, Class<T> tClass) {
-        Set<String> strings = stringRedisTemplate.opsForZSet().reverseRangeByScore(key, 0, Long.MAX_VALUE, 0, 1);
-        if (CollectionUtils.isEmpty(strings)) {
-            return null;
-        }
-        return JSON.parseObject(strings.iterator().next(), tClass);
     }
 }
 

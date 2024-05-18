@@ -8,11 +8,8 @@ import org.example.onmessage.mq.service.MQService;
 import org.example.onmessage.service.common.RedisCacheService;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
-import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,18 +37,22 @@ public class RedisAckListener implements MessageListener {
         String[] split = new String(message.getChannel()).split(":");
         String userId = split[split.length - 2];
         String key = split[split.length - 1];
-        if (event.equals(RedisConstant.EXPIRED)){
+        if (event.equals(RedisConstant.EXPIRED)) {
             // 重发
             long messageId = Long.parseLong(key);
-            List<MessageBO> messageBOS = msgReader.getWindowsMsg(RedisConstant.MESSAGE + userId, messageId, messageId, 0L, 1L, MessageBO.class);
+//            List<MessageBO> messageBOS = msgReader.getWindowsMsg(RedisConstant.MESSAGE + userId, messageId, messageId, 0L, 1L, MessageBO.class);
+//            for (MessageBO messageBO : messageBOS) {
+//                mqService.push2mq(messageBO);
+//                // ack
+//                redisCacheService.setCacheObject(RedisConstant.ACK + messageBO.getFromUserId() + ":" + messageBO.getId(), "", RedisConstant.ACK_EXPIRE_TIME, TimeUnit.SECONDS);
+//
+//            }
 
-            for (MessageBO messageBO : messageBOS) {
-                mqService.push2mq(messageBO);
-                // ack
-                redisCacheService.setCacheObject(RedisConstant.ACK + messageBO.getFromUserId() + ":" + messageBO.getId(), "", RedisConstant.ACK_EXPIRE_TIME, TimeUnit.SECONDS);
-
-            }
-        }else if(event.equals(RedisConstant.DEL)){
+            MessageBO messageBO = msgReader.getMsgByScore(RedisConstant.MESSAGE + userId, messageId, MessageBO.class);
+            mqService.push2mq(messageBO);
+            // ack
+            redisCacheService.setCacheObject(RedisConstant.ACK + messageBO.getFromUserId() + ":" + messageBO.getId(), "", RedisConstant.ACK_EXPIRE_TIME, TimeUnit.SECONDS);
+        } else if (event.equals(RedisConstant.DEL)) {
             // TODO： del就是ack了，给双方ack
 
         }

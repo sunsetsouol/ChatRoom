@@ -25,7 +25,6 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.LongStream;
 
 /**
  * @author yinjunbiao
@@ -164,7 +163,7 @@ public class MessageBuffer {
         return result.subList(0, subIndex);
     }
 
-    private Long getMaxClientId(Long fromUserId, Integer device) {
+    public Long getMaxClientId(Long fromUserId, Integer device) {
 //        return msgReader.getMaxClientId(fromUserId, device);
         Long[] clientIds = CLIENT_MAX_ID_MAP.get(fromUserId);
 
@@ -173,11 +172,15 @@ public class MessageBuffer {
         // 如果clientIds是null，可能是第一次获取，也可能是刚刚分配到当前机器
         if (Objects.isNull(clientIds)) {
             // 先从redis尝试获取
-            Long webMaxClientId = msgReader.getMaxClientId(fromUserId, AbstractMessage.DeviceType.WEB.getCode());
-            Long mobileMaxClientId = msgReader.getMaxClientId(fromUserId, AbstractMessage.DeviceType.MOBILE.getCode());
-            Long[] deviceClientIds = {webMaxClientId, mobileMaxClientId};
-            CLIENT_MAX_ID_MAP.put(fromUserId, deviceClientIds);
+            Long clientId = msgReader.getMaxClientId(fromUserId, AbstractMessage.DeviceType.WEB.getCode());
+            clientIds = new Long[]{null, null};
+            clientIds[device] = clientId;
+            CLIENT_MAX_ID_MAP.put(fromUserId, clientIds);
 
+        } else if (Objects.isNull(clientIds[device])) {
+            Long clientId = msgReader.getMaxClientId(fromUserId, AbstractMessage.DeviceType.WEB.getCode());
+            clientIds[device] = clientId;
+            CLIENT_MAX_ID_MAP.put(fromUserId, clientIds);
         } else {
             currentMaxId = clientIds[device];
         }
@@ -186,7 +189,7 @@ public class MessageBuffer {
 
     public void getUnreadMessage(WsMessageDTO wsMessageDTO) {
         // TODO： 不应该是clientId查找
-        List<Long> needToUpdate = msgReader.getWindowsMsg(RedisConstant.INBOX + wsMessageDTO.getFromUserId(), wsMessageDTO.getClientMessageId(), Long.MAX_VALUE, 0L, GlobalConstants.MAX_FRIEND, Long.class);
+        List<Long> needToUpdate = msgReader.getWindowsMsg(RedisConstant.SINGLE_INBOX + wsMessageDTO.getFromUserId(), wsMessageDTO.getClientMessageId(), Long.MAX_VALUE, 0L, GlobalConstants.MAX_FRIEND, Long.class);
         List<MessageBO> result = new ArrayList<>();
         for (Long userId : needToUpdate) {
             String key = RedisConstant.SINGLE_CHAT +

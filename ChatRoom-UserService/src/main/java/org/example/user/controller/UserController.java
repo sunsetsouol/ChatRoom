@@ -40,8 +40,6 @@ public class UserController {
         return Result.success(userService.register(userRegisterDTO));
     }
 
-    @GetMapping("test")
-    public String test() {
-        return "test";
-    }
+
+
 }

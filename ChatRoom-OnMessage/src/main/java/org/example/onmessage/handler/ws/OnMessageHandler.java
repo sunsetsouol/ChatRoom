@@ -6,6 +6,7 @@ import org.example.exception.BusinessException;
 import org.example.onmessage.constants.ThreadPoolConstant;
 import org.example.onmessage.entity.AbstractMessage;
 import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.onmessage.route.MessageBuffer;
 import org.example.onmessage.service.MessageService;
 import org.example.onmessage.service.common.RedisCacheService;
 import org.example.pojo.bo.UserBO;
@@ -15,8 +16,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 
 import javax.annotation.Resource;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author yinjunbiao
@@ -26,13 +30,22 @@ import java.util.concurrent.CompletableFuture;
 @Component
 @RequiredArgsConstructor
 public class OnMessageHandler implements WebSocketHandler {
-    private final RedisCacheService redisCache;
     private final MessageService messageService;
+    private final MessageBuffer messageBuffer;
     @Resource(name = ThreadPoolConstant.COMMON_THREAD_POOL_NAME)
     private ThreadPoolTaskExecutor threadPoolTaskExecutor;
     @Override
     public void afterConnectionEstablished(WebSocketSession webSocketSession) throws Exception {
-        GlobalWsMap.PC_SESSION.put(getUserId(webSocketSession), webSocketSession);
+        Long userId = getUserId(webSocketSession);
+        // 初始化发送最大clientId
+        GlobalWsMap.PC_SESSION.put(userId, webSocketSession);
+        Map<Integer, Long> collect = AbstractMessage.DeviceType.getTypeMap().keySet().stream()
+                .collect(Collectors.toMap(Function.identity(), device -> messageBuffer.getMaxClientId(userId, device)));
+        WsMessageDTO wsMessageDTO = new WsMessageDTO();
+        wsMessageDTO.setMessageType(AbstractMessage.MessageType.INIT.getCode());
+        wsMessageDTO.setMessage(JSON.toJSONString(collect));
+        // TODO：没有ack就一直传
+        webSocketSession.sendMessage(new TextMessage(JSON.toJSONString(wsMessageDTO)));
 //        redisCache.setCacheObject(user.getId().toString(), "", RedisCacheConstants.HEARTBEAT_TIMEOUT, TimeUnit.MINUTES);
     }
 

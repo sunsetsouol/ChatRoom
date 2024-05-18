@@ -42,6 +42,7 @@ public abstract class AbstractMessage {
         BUSINESS_ACK(5, "业务ACK"),
         GET_MESSAGE(6, "获取消息"),
         GET_MESSAGE_ACK(7, "获取消息ACK"),
+        INIT(8, "初始化"),
         ;
 
         private final Integer code;

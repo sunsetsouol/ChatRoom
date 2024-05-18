@@ -1,7 +1,5 @@
 package org.example.onmessage.constants;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * @author yinjunbiao
  * @version 1.0
@@ -20,10 +18,10 @@ public interface RedisConstant {
     String EXPIRED = "expired";
     String DEL = "del";
     String SINGLE_CHAT = "single_chat:";
-    String INBOX = "inbox:";
+    String SINGLE_INBOX = "inbox:";
 
     String CLIENT_ID_MAP = "clientIdMap:";
 
-
     String GROUP_CHAT = "group_chat:";
+    String GROUP_INBOX = "group_inbox:";
 }

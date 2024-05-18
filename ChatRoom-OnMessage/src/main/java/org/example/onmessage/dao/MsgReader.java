@@ -74,7 +74,7 @@ public class MsgReader {
     }
 
     public Long getMaxClientId(Long fromUserId, Integer device) {
-        Long clientId = redisCacheService.getFirstZSetValue(RedisConstant.CLIENT_ID_MAP + fromUserId + ":" + device, Long.class);
+        Long clientId = redisCacheService.getFirstZSetScore(RedisConstant.CLIENT_ID_MAP + fromUserId + ":" + device, Long.class);
         if (Objects.isNull(clientId)){
             return 0L;
         }
