@@ -4,9 +4,15 @@ import cn.hutool.core.codec.Base64;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.constant.RedisCacheConstants;
+import org.example.exception.BusinessException;
+import org.example.onmessage.service.common.RedisCacheService;
 import org.example.pojo.bo.UserBO;
 import org.example.pojo.dto.UserAuthority;
 import org.example.pojo.dto.UserDTO;
+import org.example.pojo.vo.ResultStatusEnum;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -14,10 +20,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.*;
 
 /**
  * @author yinjunbiao
@@ -25,7 +30,10 @@ import java.util.Map;
  * @date 2024/5/4
  */
 @Component
+@Slf4j
+@RequiredArgsConstructor
 public class WebsocketInterceptor implements HandshakeInterceptor {
+    private final RedisCacheService redisCacheService;
     @Override
     public boolean beforeHandshake(ServerHttpRequest serverHttpRequest, ServerHttpResponse serverHttpResponse, WebSocketHandler webSocketHandler, Map<String, Object> map) throws Exception {
         //1. 获取以base64加密的jsontoken
@@ -43,7 +51,13 @@ public class WebsocketInterceptor implements HandshakeInterceptor {
         JSONArray authoritiesArray = userJson.getJSONArray("authorities");
 
         //2.4 转为数组
-        String[] authorities = authoritiesArray.toArray(new String[0]);
+        String[] authorities = null;
+
+        try {
+            authorities = authoritiesArray.toArray(new String[0]);
+        } catch (Exception e) {
+            log.warn("权限信息解析失败", e);
+        }
 
         UserBO userObj = null;
 
@@ -53,13 +67,18 @@ public class WebsocketInterceptor implements HandshakeInterceptor {
             map.put("user", userObj);
         }
 
-        List<String> strings = new ArrayList<>(Arrays.asList(authorities));
+        List<String> strings = null;
+
+        try {
+            strings = new ArrayList<>(Arrays.asList(authorities));
+        } catch (Exception e) {
+            log.warn("权限信息转换失败", e);
+        }
         map.put("authorities", strings);
         return true;
     }
 
     @Override
     public void afterHandshake(ServerHttpRequest serverHttpRequest, ServerHttpResponse serverHttpResponse, WebSocketHandler webSocketHandler, Exception e) {
-
     }
 }

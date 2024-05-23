@@ -1,4 +1,4 @@
-package org.example.onmessage.entity;
+package org.example.pojo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

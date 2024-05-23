@@ -1,5 +1,6 @@
-package org.example.onmessage.config.redis;
+package org.example.gateway.config;
 
+import com.alibaba.fastjson.support.spring.FastJsonRedisSerializer;
 import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
@@ -51,7 +52,6 @@ public class MyRedisCacheConfig extends CachingConfigurerSupport {
         }
         return config;
     }
-
     @Bean
     public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory connectionFactory){
         // 创建RedisTemplate对象
@@ -61,12 +61,14 @@ public class MyRedisCacheConfig extends CachingConfigurerSupport {
         // 创建JSON序列化工具
         GenericJackson2JsonRedisSerializer jsonRedisSerializer =
                 new GenericJackson2JsonRedisSerializer();
+        FastJsonRedisSerializer<Object> fastJsonRedisSerializer =
+                new FastJsonRedisSerializer<Object>(Object.class);
         // 设置Key的序列化
-        template.setKeySerializer(jsonRedisSerializer);
-        template.setHashKeySerializer(jsonRedisSerializer);
+        template.setKeySerializer(RedisSerializer.string());
+        template.setHashKeySerializer(fastJsonRedisSerializer);
         // 设置Value的序列化
-        template.setValueSerializer(jsonRedisSerializer);
-        template.setHashValueSerializer(jsonRedisSerializer);
+        template.setValueSerializer(fastJsonRedisSerializer);
+        template.setHashValueSerializer(fastJsonRedisSerializer);
         // 返回
         return template;
     }

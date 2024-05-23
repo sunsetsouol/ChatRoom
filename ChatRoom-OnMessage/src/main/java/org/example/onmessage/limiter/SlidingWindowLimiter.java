@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.onmessage.adapter.MessageAdapter;
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.handler.ws.GlobalWsMap;
 import org.example.onmessage.mq.service.MQService;
 import org.springframework.stereotype.Component;

@@ -1,10 +1,8 @@
 package org.example.onmessage.publish.event;
 
 import lombok.Getter;
-import org.example.onmessage.entity.bo.MessageBO;
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.dto.WsMessageDTO;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.stereotype.Component;
 
 /**
  * @author yinjunbiao

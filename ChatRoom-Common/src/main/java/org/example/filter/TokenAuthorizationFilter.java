@@ -4,6 +4,7 @@ import cn.hutool.core.codec.Base64;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import org.example.constant.GlobalConstants;
 import org.example.pojo.dto.UserAuthority;
 import org.example.pojo.dto.UserDTO;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -37,7 +38,7 @@ public class TokenAuthorizationFilter extends OncePerRequestFilter {
 
 
         //1. 获取以base64加密的jsontoken
-        String token = httpServletRequest.getHeader("jsonToken");
+        String token = httpServletRequest.getHeader(GlobalConstants.JSONTOKEN);
 
         //2. 如果不为null,需要进行解析,并放入安全上下文
         if (token != null) {

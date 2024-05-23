@@ -2,7 +2,7 @@ package org.example.onmessage.publish.listener;
 
 import lombok.RequiredArgsConstructor;
 import org.example.onmessage.constants.RedisConstant;
-import org.example.onmessage.entity.bo.MessageBO;
+import org.example.pojo.bo.MessageBO;
 import org.example.onmessage.publish.event.DealMessageEvent;
 import org.example.onmessage.service.common.RedisCacheService;
 import org.springframework.context.event.EventListener;

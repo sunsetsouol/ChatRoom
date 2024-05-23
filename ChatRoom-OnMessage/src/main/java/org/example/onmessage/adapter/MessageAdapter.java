@@ -1,7 +1,7 @@
 package org.example.onmessage.adapter;
 
-import org.example.onmessage.entity.AbstractMessage;
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.AbstractMessage;
+import org.example.pojo.dto.WsMessageDTO;
 
 /**
  * @author yinjunbiao

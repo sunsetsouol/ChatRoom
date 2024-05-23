@@ -1,7 +1,7 @@
 //package org.example.onmessage.entity.bo;
 //
 //import lombok.*;
-//import org.example.onmessage.entity.AbstractMessage;
+//import org.example.pojo.AbstractMessage;
 //
 ///**
 // * @author yinjunbiao

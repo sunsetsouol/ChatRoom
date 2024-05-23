@@ -3,7 +3,7 @@ package org.example.onmessage.config.redis;
 import lombok.RequiredArgsConstructor;
 import org.example.onmessage.constants.RedisConstant;
 import org.example.onmessage.dao.MsgReader;
-import org.example.onmessage.entity.bo.MessageBO;
+import org.example.pojo.bo.MessageBO;
 import org.example.onmessage.mq.service.MQService;
 import org.example.onmessage.service.common.RedisCacheService;
 import org.springframework.data.redis.connection.Message;

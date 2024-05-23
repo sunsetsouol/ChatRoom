@@ -6,19 +6,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.onmessage.adapter.MessageAdapter;
 import org.example.onmessage.constants.RabbitMQConstant;
-import org.example.onmessage.entity.AbstractMessage;
-import org.example.onmessage.entity.dto.WsMessageDTO;
 import org.example.onmessage.handler.ws.GlobalWsMap;
-import org.example.onmessage.publish.PublishEventUtils;
-import org.example.onmessage.push.PushWorker;
 import org.example.onmessage.route.MessageBuffer;
-import org.example.onmessage.service.common.RedisCacheService;
-import org.springframework.amqp.core.ExchangeTypes;
+import org.example.pojo.AbstractMessage;
+import org.example.pojo.dto.WsMessageDTO;
 import org.springframework.amqp.core.Message;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.IOException;
@@ -32,16 +27,22 @@ import java.io.IOException;
 @RequiredArgsConstructor
 @Slf4j
 public class RabbitMQListener {
-    private final PublishEventUtils publishEventUtils;
-    private final PushWorker pushWorker;
     private final MessageBuffer messageBuffer;
-    @RabbitListener(
-            bindings = @QueueBinding(
-                    value = @Queue(value = RabbitMQConstant.WS_QUEUE),
-                    exchange = @Exchange(value = RabbitMQConstant.WS_EXCHANGE, type = ExchangeTypes.TOPIC),
-                    key = {"ws.#"}
-            )
-    )
+//    @RabbitListener(
+//            bindings = @QueueBinding(
+//                    value = @Queue(value = RabbitMQConstant.WS_QUEUE),
+//                    exchange = @Exchange(value = RabbitMQConstant.WS_EXCHANGE, type = ExchangeTypes.TOPIC),
+//                    key = {"ws.#"}
+//            )
+//    )
+    @Value("${spring.rabbitmq.listener.queues}")
+    private String[] queueNames;
+
+    @Bean
+    public String[] queueNames() {
+        return queueNames;
+    }
+    @RabbitListener(queues = {"#{queueNames}", RabbitMQConstant.DEFAULT_QUEUE})
     public void receive(Message message, Channel channel) throws IOException {
         byte[] body = message.getBody();
         WsMessageDTO wsMessageDTO = JSON.parseObject(body, WsMessageDTO.class);

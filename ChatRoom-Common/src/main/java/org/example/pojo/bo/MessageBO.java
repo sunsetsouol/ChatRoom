@@ -1,11 +1,10 @@
-package org.example.onmessage.entity.bo;
+package org.example.pojo.bo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.onmessage.entity.AbstractMessage;
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.dto.WsMessageDTO;
 
 /**
  * @author yinjunbiao

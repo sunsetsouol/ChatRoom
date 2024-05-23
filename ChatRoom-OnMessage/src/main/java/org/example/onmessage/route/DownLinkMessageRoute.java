@@ -2,8 +2,8 @@ package org.example.onmessage.route;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.onmessage.entity.AbstractMessage;
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.AbstractMessage;
+import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.limiter.SlidingWindowLimiter;
 import org.springframework.stereotype.Component;
 

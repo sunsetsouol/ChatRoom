@@ -58,6 +58,7 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
                 .mvcMatchers("/ws/**").permitAll()
                 .mvcMatchers("/login/*").anonymous()
                 .mvcMatchers("/*/register/**").anonymous()
+//                .mvcMatchers("/*/r1").anonymous()
                 //这个表示需要携带token
                 .antMatchers("/**").authenticated()
                 //关闭跨站攻击

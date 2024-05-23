@@ -1,6 +1,6 @@
 package org.example.onmessage.service;
 
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.dto.WsMessageDTO;
 
 /**
  * @author yinjunbiao

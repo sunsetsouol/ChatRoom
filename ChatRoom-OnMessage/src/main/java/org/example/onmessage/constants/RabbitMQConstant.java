@@ -11,4 +11,8 @@ public interface RabbitMQConstant {
 
     String WS_QUEUE = "ws_queue";
     String WS_ROUTING_KEY = "ws.a";
+
+    String MQ_GROUP_ROUTING_KEY = "ws.group";
+    String IP_QUEUE = "ipQueue";
+    String DEFAULT_QUEUE = "defaultQueue";
 }

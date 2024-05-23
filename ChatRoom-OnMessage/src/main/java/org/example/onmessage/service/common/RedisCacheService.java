@@ -454,12 +454,12 @@ public class RedisCacheService {
         return redisTemplate.opsForHash().values(key);
     }
 
-    public <T> Set<T> zget(String key, Long score, Class<T> tClass) {
+    public <T> T zget(String key, Long score, Class<T> tClass) {
         Set<ZSetOperations.TypedTuple<String>> set = stringRedisTemplate.opsForZSet().rangeByScoreWithScores(key, score, score);
         if (CollectionUtils.isEmpty(set)) {
-            return new LinkedHashSet<>();
+            return null;
         }
-        return set.parallelStream().map(o -> JSON.parseObject(o.getValue(), tClass)).collect(Collectors.toSet());
+        return set.stream().findFirst().map(o -> JSON.parseObject(o.getValue(), tClass)).get();
     }
 
     public <T> Set<T> gAllSet(String key, Class<T> tClass) {
@@ -470,12 +470,12 @@ public class RedisCacheService {
         return members.stream().map(o -> JSON.parseObject(o, tClass)).collect(Collectors.toSet());
     }
 
-    public <T> T getFirstZSetScore(String key, Class<T> tClass) {
-        Set<String> strings = stringRedisTemplate.opsForZSet().reverseRangeByScore(key, 0, Long.MAX_VALUE, 0, 1);
-        if (CollectionUtils.isEmpty(strings)) {
+    public Double getFirstZSetScore(String key) {
+        Set<ZSetOperations.TypedTuple<String>> firstTypedTuple = stringRedisTemplate.opsForZSet().reverseRangeByScoreWithScores(key, 0, Long.MAX_VALUE, 0, 1);
+        if (CollectionUtils.isEmpty(firstTypedTuple)) {
             return null;
         }
-        return JSON.parseObject(strings.iterator().next(), tClass);
+        return firstTypedTuple.iterator().next().getScore();
     }
 }
 

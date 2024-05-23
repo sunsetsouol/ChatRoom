@@ -2,13 +2,14 @@ package org.example.onmessage.handler.ws;
 
 import com.alibaba.fastjson.JSON;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.exception.BusinessException;
 import org.example.onmessage.constants.ThreadPoolConstant;
-import org.example.onmessage.entity.AbstractMessage;
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.AbstractMessage;
+import org.example.pojo.dto.WsMessageDTO;
+import org.example.onmessage.publish.PublishEventUtils;
 import org.example.onmessage.route.MessageBuffer;
 import org.example.onmessage.service.MessageService;
-import org.example.onmessage.service.common.RedisCacheService;
 import org.example.pojo.bo.UserBO;
 import org.example.pojo.vo.ResultStatusEnum;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 
 import javax.annotation.Resource;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -28,10 +31,12 @@ import java.util.stream.Collectors;
  * @date 2024/5/4
  */
 @Component
+@Slf4j
 @RequiredArgsConstructor
 public class OnMessageHandler implements WebSocketHandler {
     private final MessageService messageService;
     private final MessageBuffer messageBuffer;
+    private final PublishEventUtils publishEventUtils;
     @Resource(name = ThreadPoolConstant.COMMON_THREAD_POOL_NAME)
     private ThreadPoolTaskExecutor threadPoolTaskExecutor;
     @Override
@@ -46,6 +51,9 @@ public class OnMessageHandler implements WebSocketHandler {
         wsMessageDTO.setMessage(JSON.toJSONString(collect));
         // TODO：没有ack就一直传
         webSocketSession.sendMessage(new TextMessage(JSON.toJSONString(wsMessageDTO)));
+
+
+
 //        redisCache.setCacheObject(user.getId().toString(), "", RedisCacheConstants.HEARTBEAT_TIMEOUT, TimeUnit.MINUTES);
     }
 
@@ -76,6 +84,7 @@ public class OnMessageHandler implements WebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession webSocketSession, CloseStatus closeStatus) throws Exception {
         GlobalWsMap.PC_SESSION.remove(getUserId(webSocketSession));
+        publishEventUtils.userOffline(this, getUserId(webSocketSession));
     }
 
     @Override

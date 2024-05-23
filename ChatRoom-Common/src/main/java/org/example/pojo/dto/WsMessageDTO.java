@@ -1,8 +1,8 @@
-package org.example.onmessage.entity.dto;
+package org.example.pojo.dto;
 
 import lombok.*;
 import org.example.exception.BusinessException;
-import org.example.onmessage.entity.AbstractMessage;
+import org.example.pojo.AbstractMessage;
 import org.example.pojo.vo.ResultStatusEnum;
 import org.springframework.util.StringUtils;
 
@@ -57,6 +57,11 @@ public class WsMessageDTO extends AbstractMessage {
      */
     private byte[] byteArray;
 
+    /**
+     * 没提文件byte数组编号
+     */
+    private String fileNo;
+
 
     @AllArgsConstructor
     @Getter
@@ -68,7 +73,7 @@ public class WsMessageDTO extends AbstractMessage {
         VIDEO(5, "视频");
         private final Integer code;
         private final String type;
-        private static Map<Integer, String> typeMap = new HashMap<>();
+        private static final Map<Integer, String> typeMap = new HashMap<>();
 
         static {
             for (MetaDataType type : MetaDataType.values()) {

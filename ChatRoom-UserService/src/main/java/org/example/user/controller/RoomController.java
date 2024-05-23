@@ -20,6 +20,15 @@ public class RoomController {
     private final RoomService roomService;
 
     /**
+     * 公共资源
+     * @return r1
+     */
+    @GetMapping("/r1")
+    public String r1(){
+        return "r1";
+    }
+
+    /**
      * 创建聊天室
      * @param roomCreateDTO 创建聊天室参数
      * @return 是否创建成功

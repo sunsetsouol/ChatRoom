@@ -2,11 +2,10 @@ package org.example.onmessage.dao;
 
 import com.alibaba.fastjson.JSON;
 import lombok.RequiredArgsConstructor;
-import org.example.constant.RedisCacheConstants;
 import org.example.onmessage.constants.RedisConstant;
-import org.example.onmessage.entity.AbstractMessage;
-import org.example.onmessage.entity.bo.MessageBO;
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.AbstractMessage;
+import org.example.pojo.bo.MessageBO;
+import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.service.common.RedisCacheService;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
@@ -43,13 +42,11 @@ public class MsgReader {
 
 
     public <T> boolean hasMsg(String key, Long globalMessageId, Class<T> tClass) {
-        Set<T> zget = redisCacheService.zget(key,  globalMessageId, tClass);
-        return zget != null && zget.size() > 0;
+        return Objects.nonNull(redisCacheService.zget(key,  globalMessageId, tClass));
     }
 
     public MessageBO getMessageByClientId(WsMessageDTO wsMessageDTO) {
-        Set<Long> zget = redisCacheService.zget(RedisConstant.CLIENT_ID_MAP + wsMessageDTO.getFromUserId() + ":" + wsMessageDTO.getDevice(), wsMessageDTO.getClientMessageId(), Long.class);
-        Long globalMessageId = zget.stream().findFirst().orElse(null);
+        Long globalMessageId = redisCacheService.zget(RedisConstant.CLIENT_ID_MAP + wsMessageDTO.getFromUserId() + ":" + wsMessageDTO.getDevice(), wsMessageDTO.getClientMessageId(), Long.class);
         if (Objects.isNull(globalMessageId)) {
             return null;
         }
@@ -66,19 +63,15 @@ public class MsgReader {
     }
 
     public <T> T getMsgByScore(String key, long score, Class<T> tClass) {
-        Set<T> zget = redisCacheService.zget(key, score, tClass);
-        if (zget.isEmpty()) {
-            return null;
-        }
-        return zget.stream().findFirst().get();
+        return redisCacheService.zget(key, score, tClass);
     }
 
     public Long getMaxClientId(Long fromUserId, Integer device) {
-        Long clientId = redisCacheService.getFirstZSetScore(RedisConstant.CLIENT_ID_MAP + fromUserId + ":" + device, Long.class);
+        Double clientId = redisCacheService.getFirstZSetScore(RedisConstant.CLIENT_ID_MAP + fromUserId + ":" + device);
         if (Objects.isNull(clientId)){
             return 0L;
         }
-        return clientId;
+        return clientId.longValue();
     }
 //    public Long getMaxClientId(Long fromUserId, Integer device) {
 //        Long[] clientIds = redisCacheService.getCacheObject(RedisConstant.CLIENT_ID + fromUserId, Long[].class);

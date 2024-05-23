@@ -1,7 +1,7 @@
 package org.example.onmessage.publish.event;
 
 import lombok.Getter;
-import org.example.onmessage.entity.bo.MessageBO;
+import org.example.pojo.bo.MessageBO;
 import org.springframework.context.ApplicationEvent;
 
 /**

@@ -1,13 +1,10 @@
 package org.example.onmessage.publish.listener;
 
 import lombok.RequiredArgsConstructor;
-import org.example.onmessage.constants.RabbitMQConstant;
-import org.example.onmessage.entity.AbstractMessage;
-import org.example.onmessage.entity.bo.MessageBO;
-import org.example.onmessage.entity.dto.WsMessageDTO;
+import org.example.pojo.AbstractMessage;
+import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.mq.service.MQService;
 import org.example.onmessage.publish.event.MessageBusinessAckEvent;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 

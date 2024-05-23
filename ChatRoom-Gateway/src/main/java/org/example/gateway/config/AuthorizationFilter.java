@@ -49,7 +49,7 @@ public class AuthorizationFilter implements GlobalFilter, Ordered {
         jsonToken.put("authorities", jsonObject.get("authorities"));
         jsonToken.put("principal", jsonObject.get("user_name"));
 //        把token解析后的信息,放入jsonToken中,在微服务中传递
-        request = request.mutate().header("jsonToken", Base64.encode(JSONObject.toJSONString(jsonToken))).build();
+        request = request.mutate().header(GlobalConstants.JSONTOKEN, Base64.encode(JSONObject.toJSONString(jsonToken))).build();
         return chain.filter(exchange.mutate().request(request).build());
     }
 
