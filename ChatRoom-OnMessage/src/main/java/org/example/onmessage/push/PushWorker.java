@@ -29,11 +29,11 @@ public class PushWorker {
 
         // TODO：lua脚本保证原子性
         // 保存消息id映射
-        msgWriter.saveMessageIdMap(message.getFromUserId(), message.getDevice(), message.getClientMessageId(), message.getId());
-        // 保存消息到对话缓存
-        msgWriter.saveSingleChatMsg(message);
-        // 收件箱更新
-        msgWriter.saveSingleInboxMsg(message);
+//        msgWriter.saveMessageIdMap(message.getFromUserId(), message.getDevice(), message.getClientMessageId(), message.getId());
+//        // 保存消息到对话缓存
+//        msgWriter.saveSingleChatMsg(message);
+//        // 收件箱更新
+//        msgWriter.saveSingleInboxMsg(message);
         // 推送消息
         GlobalWsMap.sendText(message.getTargetId(), JSON.toJSONString(message));
         GlobalWsMap.sendText(message.getFromUserId(), JSON.toJSONString(message));

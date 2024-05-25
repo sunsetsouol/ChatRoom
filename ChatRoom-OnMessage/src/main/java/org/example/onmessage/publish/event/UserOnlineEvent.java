@@ -2,6 +2,7 @@ package org.example.onmessage.publish.event;
 
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
+import org.springframework.web.socket.WebSocketSession;
 
 /**
  * @author yinjunbiao
@@ -11,10 +12,11 @@ import org.springframework.context.ApplicationEvent;
 @Getter
 public class UserOnlineEvent extends ApplicationEvent {
     private Long userId;
-    private String ip;
-    public UserOnlineEvent(Object source, Long userId, String ip) {
+    private WebSocketSession webSocketSession;
+
+    public UserOnlineEvent(Object source, Long userId, WebSocketSession webSocketSession) {
         super(source);
         this.userId = userId;
-        this.ip = ip;
+        this.webSocketSession = webSocketSession;
     }
 }

@@ -42,15 +42,8 @@ public class OnMessageHandler implements WebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession webSocketSession) throws Exception {
         Long userId = getUserId(webSocketSession);
-        // 初始化发送最大clientId
-        GlobalWsMap.PC_SESSION.put(userId, webSocketSession);
-        Map<Integer, Long> collect = AbstractMessage.DeviceType.getTypeMap().keySet().stream()
-                .collect(Collectors.toMap(Function.identity(), device -> messageBuffer.getMaxClientId(userId, device)));
-        WsMessageDTO wsMessageDTO = new WsMessageDTO();
-        wsMessageDTO.setMessageType(AbstractMessage.MessageType.INIT.getCode());
-        wsMessageDTO.setMessage(JSON.toJSONString(collect));
-        // TODO：没有ack就一直传
-        webSocketSession.sendMessage(new TextMessage(JSON.toJSONString(wsMessageDTO)));
+        publishEventUtils.userOnline(this, userId, webSocketSession);
+
 
 
 
@@ -60,7 +53,7 @@ public class OnMessageHandler implements WebSocketHandler {
     @Override
     public void handleMessage(WebSocketSession webSocketSession, WebSocketMessage<?> webSocketMessage) throws Exception {
         String message = webSocketMessage.getPayload().toString();
-
+        log.info("收到消息{}" , message);
         WsMessageDTO wsMessageDTO = getWsMessage(webSocketSession, message);
 
         // 心跳处理

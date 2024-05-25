@@ -43,6 +43,7 @@ public abstract class AbstractMessage {
         GET_MESSAGE(6, "获取消息"),
         GET_MESSAGE_ACK(7, "获取消息ACK"),
         INIT(8, "初始化"),
+        FILL_EMPTY(9, "填充空消息"),
         ;
 
         private final Integer code;

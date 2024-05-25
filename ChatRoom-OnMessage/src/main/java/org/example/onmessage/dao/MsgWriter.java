@@ -2,17 +2,15 @@ package org.example.onmessage.dao;
 
 import lombok.RequiredArgsConstructor;
 import org.example.constant.RedisCacheConstants;
-import org.example.exception.BusinessException;
 import org.example.onmessage.constants.RedisConstant;
+import org.example.pojo.AbstractMessage;
 import org.example.pojo.bo.MessageBO;
 import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.service.common.RedisCacheService;
-import org.example.pojo.vo.ResultStatusEnum;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author yinjunbiao
@@ -32,19 +30,37 @@ public class MsgWriter {
     }
 
     public void saveDurably(List<MessageBO> messageBOS) {
-        Long fromUserId = messageBOS.stream().findAny().orElseThrow(() -> new BusinessException(ResultStatusEnum.FROM_USER_ID_EMPTY)).getFromUserId();
-        Integer device = messageBOS.stream().findAny().orElseThrow(() -> new BusinessException(ResultStatusEnum.DEVICE_EMPTY)).getDevice();
-        // 存到持久化消息
-        String key = RedisConstant.MESSAGE + fromUserId;
-        messageBOS.forEach(messageBO -> {
-            redisCacheService.addZSet(key, messageBO, messageBO.getId());
-            // 设置ack
-            redisCacheService.setCacheObject(RedisConstant.ACK + fromUserId + ":" + messageBO.getId(), "", RedisConstant.ACK_EXPIRE_TIME, TimeUnit.SECONDS);
-        });
-        // 删除暂存信息
-        String deleteKey = RedisConstant.TEM_MESSAGE + fromUserId + ":" + device;
-        redisCacheService.removeZSetByScore(deleteKey, messageBOS.get(0).getClientMessageId(), messageBOS.get(messageBOS.size() - 1).getClientMessageId());
+        for (MessageBO message : messageBOS) {
+            if (AbstractMessage.MessageType.SINGLE.getCode().equals(message.getMessageType())) {
+                saveSingleDurably(message);
+            } else if (AbstractMessage.MessageType.GROUP.getCode().equals(message.getMessageType())) {
+                saveGroupDurably(message);
+            }
+        }
+//        Long fromUserId = messageBOS.stream().findAny().orElseThrow(() -> new BusinessException(ResultStatusEnum.FROM_USER_ID_EMPTY)).getFromUserId();
+//        Integer device = messageBOS.stream().findAny().orElseThrow(() -> new BusinessException(ResultStatusEnum.DEVICE_EMPTY)).getDevice();
+//        // 存到持久化消息
+//        String key = RedisConstant.MESSAGE + fromUserId;
+//        messageBOS.forEach(messageBO -> {
+//            redisCacheService.addZSet(key, messageBO, messageBO.getId());
+//            // 设置ack
+//            redisCacheService.setCacheObject(RedisConstant.ACK + fromUserId + ":" + messageBO.getId(), "", RedisConstant.ACK_EXPIRE_TIME, TimeUnit.SECONDS);
+//        });
+//        // 删除暂存信息
+//        String deleteKey = RedisConstant.TEM_MESSAGE + fromUserId + ":" + device;
+//        redisCacheService.removeZSetByScore(deleteKey, messageBOS.get(0).getClientMessageId(), messageBOS.get(messageBOS.size() - 1).getClientMessageId());
 
+    }
+
+    private void saveGroupDurably(MessageBO message) {
+        // 获取群聊人数，但是我们限制了200人，所以还是逐个通知
+        Set<Long> userIds = redisCacheService.getCacheSet(RedisCacheConstants.ROOM_MEMBER + message.getTargetId(), Long.class);
+        userIds.forEach(userId -> redisCacheService.addZSet(RedisConstant.INBOX + userId, message, message.getId()));
+    }
+
+    private void saveSingleDurably(MessageBO message) {
+        redisCacheService.addZSet(RedisConstant.INBOX + message.getFromUserId(), message, message.getId());
+        redisCacheService.addZSet(RedisConstant.INBOX + message.getTargetId(), message, message.getId());
     }
 
     public void saveSingleChatMsg(MessageBO messageBO) {
@@ -74,8 +90,8 @@ public class MsgWriter {
 
     public void saveSingleInboxMsg(MessageBO message) {
         // 保存到收件箱
-        redisCacheService.addZSet(RedisConstant.SINGLE_INBOX + message.getFromUserId(), message.getTargetId(), message.getId());
-        redisCacheService.addZSet(RedisConstant.SINGLE_INBOX + message.getTargetId(), message.getFromUserId(), message.getId());
+        redisCacheService.addZSet(RedisConstant.INBOX + message.getFromUserId(), message.getTargetId(), message.getId());
+        redisCacheService.addZSet(RedisConstant.INBOX + message.getTargetId(), message.getFromUserId(), message.getId());
     }
 
     public void saveGroupChatMsg(MessageBO message) {

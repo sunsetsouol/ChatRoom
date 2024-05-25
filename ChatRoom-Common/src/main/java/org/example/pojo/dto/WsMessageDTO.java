@@ -1,6 +1,7 @@
 package org.example.pojo.dto;
 
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.example.exception.BusinessException;
 import org.example.pojo.AbstractMessage;
 import org.example.pojo.vo.ResultStatusEnum;
@@ -19,6 +20,7 @@ import java.util.Objects;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Slf4j
 public class WsMessageDTO extends AbstractMessage {
 
     /**
@@ -58,9 +60,14 @@ public class WsMessageDTO extends AbstractMessage {
     private byte[] byteArray;
 
     /**
-     * 没提文件byte数组编号
+     * 块编号
      */
-    private String fileNo;
+    private Integer blockNum;
+
+    /**
+     * 文件总块数
+     */
+    private Integer totalBlock;
 
 
     @AllArgsConstructor
@@ -70,7 +77,8 @@ public class WsMessageDTO extends AbstractMessage {
         IMAGE(2, "图片"),
         FILE(3, "文件"),
         VOICE(4, "语音"),
-        VIDEO(5, "视频");
+        VIDEO(5, "视频")
+        ;
         private final Integer code;
         private final String type;
         private static final Map<Integer, String> typeMap = new HashMap<>();

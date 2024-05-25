@@ -2,6 +2,7 @@ package org.example.onmessage.route;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.alibaba.fastjson.JSON;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.IdStrategy.IdGen.IdGenType;
@@ -34,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 @Slf4j
 @RequiredArgsConstructor
+@Data
 public class MessageBuffer {
     private static final Map<Long, Long[]> CLIENT_MAX_ID_MAP = new ConcurrentHashMap<>();
     private static final Long BUFFER_SIZE = 50L;
@@ -70,7 +72,7 @@ public class MessageBuffer {
 
             Long clientMessageId = wsMessageDTO.getClientMessageId();
 
-            // TODO：既然已经有了限流器就不需要在丢弃了
+            // 防止消息乱发，clientId一直不对
             if (clientMessageId - curMaxId > BUFFER_SIZE) {
                 // 超出缓存区直接抛弃，等客户端重发
                 log.warn("消息超过缓存区，直接舍弃，等客户端重发");
@@ -160,7 +162,10 @@ public class MessageBuffer {
             subIndex = i + 1;
             result.add(messageBO);
         }
-        return result.subList(0, subIndex);
+        List<MessageBO> messageBOS = result.subList(0, subIndex);
+        // 保存到持久化
+        msgWriter.saveDurably(messageBOS);
+        return messageBOS;
     }
 
     public Long getMaxClientId(Long fromUserId, Integer device) {
@@ -172,15 +177,15 @@ public class MessageBuffer {
         // 如果clientIds是null，可能是第一次获取，也可能是刚刚分配到当前机器
         if (Objects.isNull(clientIds)) {
             // 先从redis尝试获取
-            Long clientId = msgReader.getMaxClientId(fromUserId, AbstractMessage.DeviceType.WEB.getCode());
+            Long clientId = msgReader.getMaxClientId(fromUserId, device);
             clientIds = new Long[]{null, null};
             clientIds[device] = clientId;
             CLIENT_MAX_ID_MAP.put(fromUserId, clientIds);
+            currentMaxId = clientId;
 
         } else if (Objects.isNull(clientIds[device])) {
-            Long clientId = msgReader.getMaxClientId(fromUserId, AbstractMessage.DeviceType.WEB.getCode());
+            Long clientId = msgReader.getMaxClientId(fromUserId, device);
             clientIds[device] = clientId;
-            CLIENT_MAX_ID_MAP.put(fromUserId, clientIds);
         } else {
             currentMaxId = clientIds[device];
         }
@@ -189,7 +194,7 @@ public class MessageBuffer {
 
     public void getUnreadMessage(WsMessageDTO wsMessageDTO) {
         // TODO： 不应该是clientId查找
-        List<Long> needToUpdate = msgReader.getWindowsMsg(RedisConstant.SINGLE_INBOX + wsMessageDTO.getFromUserId(), wsMessageDTO.getClientMessageId(), Long.MAX_VALUE, 0L, GlobalConstants.MAX_FRIEND, Long.class);
+        List<Long> needToUpdate = msgReader.getWindowsMsg(RedisConstant.INBOX + wsMessageDTO.getFromUserId(), wsMessageDTO.getClientMessageId(), Long.MAX_VALUE, 0L, GlobalConstants.MAX_FRIEND, Long.class);
         List<MessageBO> result = new ArrayList<>();
         for (Long userId : needToUpdate) {
             String key = RedisConstant.SINGLE_CHAT +

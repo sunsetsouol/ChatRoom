@@ -1,6 +1,7 @@
 package org.example.onmessage.service.common;
 
 import com.alibaba.fastjson.JSON;
+import org.example.pojo.dto.WsMessageDTO;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -131,7 +132,10 @@ public class RedisCacheService {
         return count == null ? 0 : count;
     }
 
-
+    public <T> Set<T> getCacheSet(final String key, Class<T> type) {
+        Set<String> set = stringRedisTemplate.opsForSet().members(key);
+        return set.stream().map(o -> JSON.parseObject(o, type)).collect(Collectors.toSet());
+    }
     /**
      * 判断key-set中是否存在value
      *
@@ -476,6 +480,11 @@ public class RedisCacheService {
             return null;
         }
         return firstTypedTuple.iterator().next().getScore();
+    }
+
+    public <T> List<T> getLastZSetScore(String key, long size, Class<T> tClass) {
+        Set<String> set = stringRedisTemplate.opsForZSet().reverseRange(key, 0, size);
+        return set.stream().map(o -> JSON.parseObject(o, tClass)).collect(Collectors.toList());
     }
 }
 

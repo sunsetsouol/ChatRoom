@@ -18,7 +18,7 @@ public interface RedisConstant {
     String EXPIRED = "expired";
     String DEL = "del";
     String SINGLE_CHAT = "single_chat:";
-    String SINGLE_INBOX = "inbox:";
+    String INBOX = "inbox:";
 
     String CLIENT_ID_MAP = "clientIdMap:";
 

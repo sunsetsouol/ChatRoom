@@ -10,6 +10,7 @@ import org.example.onmessage.publish.event.UserOfflineEvent;
 import org.example.onmessage.publish.event.UserOnlineEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketSession;
 
 /**
  * 事件发布工具类
@@ -31,8 +32,8 @@ public class PublishEventUtils {
         applicationEventPublisher.publishEvent(new MessageBusinessAckEvent(source, wsMessageDTO));
     }
 
-    public void userOnline(Object source, Long userId, String ip) {
-        applicationEventPublisher.publishEvent(new UserOnlineEvent(source, userId, ip));
+    public void userOnline(Object source, Long userId, WebSocketSession webSocketSession) {
+        applicationEventPublisher.publishEvent(new UserOnlineEvent(source, userId, webSocketSession));
     }
 
     public void userOffline(Object source, Long userId) {

@@ -1,6 +1,7 @@
 package org.example.onmessage.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.route.DownLinkMessageRoute;
 import org.example.onmessage.service.MessageService;

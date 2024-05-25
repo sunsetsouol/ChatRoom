@@ -131,6 +131,11 @@ public class RedisCacheService {
         return count == null ? 0 : count;
     }
 
+    public <T> Set<T> getCacheSet(final String key, Class<T> type) {
+        Set<String> set = stringRedisTemplate.opsForSet().members(key);
+        return set.stream().map(o -> JSON.parseObject(o, type)).collect(Collectors.toSet());
+    }
+
 
     /**
      * 判断key-set中是否存在value
