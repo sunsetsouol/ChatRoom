@@ -45,18 +45,19 @@ public class PushWorker {
     public void push2Group(MessageBO message){
         // TODO：lua脚本保证原子性
         // 保存消息id映射
-        msgWriter.saveMessageIdMap(message.getFromUserId(), message.getDevice(), message.getClientMessageId(), message.getId());
-        // 保存消息到对话缓存
-        msgWriter.saveGroupChatMsg(message);
+//        msgWriter.saveMessageIdMap(message.getFromUserId(), message.getDevice(), message.getClientMessageId(), message.getId());
+//        // 保存消息到对话缓存
+//        msgWriter.saveGroupChatMsg(message);
 
         Set<Long> memberIds = redisCacheService.gAllSet(RedisCacheConstants.ROOM_MEMBER + message.getTargetId(), Long.class);
         // 收件箱更新
-        msgWriter.saveGroupInboxMsg(message, memberIds);
+//        msgWriter.saveGroupInboxMsg(message, memberIds);
         // 推送消息
         memberIds.forEach(memberId -> GlobalWsMap.sendText(memberId, JSON.toJSONString(message)));
         // 业务ack
         publishEventUtils.pushMessageAck(this, message);
     }
+
 
     public void push(MessageBO message){
         if (message.getMessageType().equals(AbstractMessage.MessageType.SINGLE.getCode())) {

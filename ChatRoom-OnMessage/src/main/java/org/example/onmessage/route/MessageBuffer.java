@@ -89,6 +89,7 @@ public class MessageBuffer {
                     // 有序到达直接推给用户并且保存到持久化
 //                    pushWorker.push(messageList);
 
+                    // TODO：异步防止阻塞
                     messageList.forEach(pushWorker::push);
                     MessageBO lastMessage = messageList.get(messageList.size() - 1);
 //                    msgWriter.updateMaxClientId(fromUserId, device, lastMessage.getClientMessageId());
