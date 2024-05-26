@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.constant.GlobalConstants;
 import org.example.constant.RedisCacheConstants;
 import org.example.exception.BusinessException;
 import org.example.onmessage.service.common.RedisCacheService;
@@ -22,6 +23,7 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.*;
 
 /**
@@ -33,7 +35,6 @@ import java.util.*;
 @Slf4j
 @RequiredArgsConstructor
 public class WebsocketInterceptor implements HandshakeInterceptor {
-    private final RedisCacheService redisCacheService;
     @Override
     public boolean beforeHandshake(ServerHttpRequest serverHttpRequest, ServerHttpResponse serverHttpResponse, WebSocketHandler webSocketHandler, Map<String, Object> map) throws Exception {
         //1. 获取以base64加密的jsontoken
@@ -75,6 +76,10 @@ public class WebsocketInterceptor implements HandshakeInterceptor {
             log.warn("权限信息转换失败", e);
         }
         map.put("authorities", strings);
+        URI uri = serverHttpRequest.getURI();
+        String path = uri.getPath();
+        Long lastId = Long.valueOf(path.substring(path.lastIndexOf("/") + 1));
+        map.put(GlobalConstants.LAST_GLOBAL_MESSAGE_ID, lastId);
         return true;
     }
 

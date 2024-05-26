@@ -29,6 +29,7 @@ public class GlobalWsMap {
 
 
     public static Boolean sendText(Long userId, String message) {
+        // TODO： 等待ack
         AtomicReference<Boolean> flag = new AtomicReference<>(false);
         SESSION_MAP.forEach(sessionMap -> {
             WebSocketSession webSocketSession = sessionMap.get(userId);

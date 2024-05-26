@@ -23,6 +23,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry webSocketHandlerRegistry) {
-        webSocketHandlerRegistry.addHandler(onMessageHandler, "/ws/onMessage").addInterceptors(websocketInterceptor).setAllowedOrigins("*");
+        webSocketHandlerRegistry.addHandler(onMessageHandler, "/ws/onMessage/{lastId}").addInterceptors(websocketInterceptor).setAllowedOrigins("*");
     }
 }

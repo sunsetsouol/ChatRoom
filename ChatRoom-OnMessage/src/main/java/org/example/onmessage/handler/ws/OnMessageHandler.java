@@ -44,10 +44,6 @@ public class OnMessageHandler implements WebSocketHandler {
         Long userId = getUserId(webSocketSession);
         publishEventUtils.userOnline(this, userId, webSocketSession);
 
-
-
-
-//        redisCache.setCacheObject(user.getId().toString(), "", RedisCacheConstants.HEARTBEAT_TIMEOUT, TimeUnit.MINUTES);
     }
 
     @Override

@@ -1,7 +1,6 @@
 package org.example.onmessage.service.common;
 
 import com.alibaba.fastjson.JSON;
-import org.example.pojo.dto.WsMessageDTO;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -446,8 +445,8 @@ public class RedisCacheService {
         return zSetOps.reverseRange(key, startRange, endRange);
     }
 
-    public <T> Set<ZSetOperations.TypedTuple<String>> zget(String key, long min, long max, long offset, long count, Class<T> tClass) {
-        Set<ZSetOperations.TypedTuple<String>> set = stringRedisTemplate.opsForZSet().rangeByScoreWithScores(key, min, max, offset, count);
+    public <T> Set<String> zget(String key, long min, long max, long offset, long count, Class<T> tClass) {
+        Set<String> set = stringRedisTemplate.opsForZSet().rangeByScore(key, min, max, offset, count);
         if (CollectionUtils.isEmpty(set)) {
             return new LinkedHashSet<>();
         }
@@ -482,7 +481,7 @@ public class RedisCacheService {
         return firstTypedTuple.iterator().next().getScore();
     }
 
-    public <T> List<T> getLastZSetScore(String key, long size, Class<T> tClass) {
+    public <T> List<T> getLastZSet(String key, long size, Class<T> tClass) {
         Set<String> set = stringRedisTemplate.opsForZSet().reverseRange(key, 0, size);
         return set.stream().map(o -> JSON.parseObject(o, tClass)).collect(Collectors.toList());
     }

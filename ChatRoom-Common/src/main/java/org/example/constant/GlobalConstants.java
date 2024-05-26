@@ -19,4 +19,5 @@ public interface GlobalConstants {
     String WEBSOCKET_ENDPOINT_PATH = "/ws";
 
     String JSONTOKEN = "jsonToken";
+    String LAST_GLOBAL_MESSAGE_ID = "lastGlobalMessageId";
 }
