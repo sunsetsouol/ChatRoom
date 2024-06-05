@@ -27,7 +27,7 @@ public class DownLinkMessageRoute {
     public void downLinkMessagePush(WsMessageDTO wsMessageDTO) {
         log.info("下行消息推送:{}", wsMessageDTO);
         if (wsMessageDTO.getMessageType().equals(AbstractMessage.MessageType.GET_MESSAGE.getCode())){
-            messageBuffer.getUnreadMessage(wsMessageDTO);
+//            messageBuffer.getUnreadMessage(wsMessageDTO);
         }else {
             slidingWindowLimiter.handleMessage(wsMessageDTO);
         }

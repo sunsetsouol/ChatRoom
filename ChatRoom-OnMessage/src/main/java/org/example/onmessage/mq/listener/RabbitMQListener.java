@@ -114,7 +114,7 @@ public class RabbitMQListener {
     private boolean doBusiness(MessageSendBo messageSendBo) {
         try {
             pushWorker.push(messageSendBo);
-            // todo：应该全部用户ack后再ack的，测试先直接ack
+            // todo：应该全部用户ack后再ack的，测试先直接ack，后续用户ack注意如果没有ack直接保存离线消息
             BusinessAckMessage businessAckMessage = new BusinessAckMessage(messageSendBo.getMessage(), messageSendBo.getReceivers());
             String host = redisCacheService.getHashValue(RedisCacheConstants.ONLINE + messageSendBo.getMessage().getFromUserId(), messageSendBo.getMessage().getDevice().toString(), String.class);
 
@@ -133,7 +133,7 @@ public class RabbitMQListener {
      */
     public Boolean doBusiness(MessageBO messageBO) {
         if (messageBO.getMessageType().equals(AbstractMessage.MessageType.SERVER_ACK.getCode())) {
-            // todo：ACK
+
 //            ClientMessageAck ack = ClientMessageAck
 //                    .builder()
 //                    .clientMessageId(messageBO.getClientMessageId())
@@ -158,7 +158,7 @@ public class RabbitMQListener {
 //        if (messageBO.getMessageType().equals(AbstractMessage.MessageType.SINGLE.getCode())) {
 //                // 单聊
 //                if (GlobalWsMap.sendText(messageBO.getTargetId(), JSON.toJSONString(messageBO))){
-//                    // TODO：离线消息保存
+
 ////                redisCacheService.saveOfflineMessage(wsMessageDTO.getTargetId(), wsMessageDTO);
 //
 //                    publishEventUtils.dealMessage(this, messageBO);

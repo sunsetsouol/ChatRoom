@@ -28,11 +28,8 @@ import java.util.stream.Collectors;
 public class MsgReader {
     private final RedisCacheService redisCacheService;
 
-    // TODO：细分一点，不要全用这个函数
-    // 1. 读取指定score的set
-    // 2. 倒数指定个数的set
-    // 3. 正途，找到clientId后的信息
-    // 4. 找到clientId后的信息
+
+
     public <T> List<T> getWindowsMsg(String key, long min, long max, long offset, long bufferSize, Class<T> tclass) {
         Set<String> zget = redisCacheService.zget(key, min, max, offset, bufferSize, tclass);
         return zget.stream().map(message -> JSON.parseObject(message, tclass)).collect(Collectors.toList());
@@ -106,7 +103,7 @@ public class MsgReader {
         return zget.stream().map(message -> JSON.parseObject(message, MessageBO.class)).collect(Collectors.toList());
     }
 
-    // todo：判断是否businessAck
+
     public boolean isBusinessAcked(MessageBO message) {
         return redisCacheService.hasKey(RedisConstant.ALREADY_ACK + message.getId());
     }

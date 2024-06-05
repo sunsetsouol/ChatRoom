@@ -91,8 +91,7 @@ public class MessageBuffer {
 //                    pushWorker.push(messageList);
                     messageList.forEach(messageService::push2mq);
 
-                    // TODO：异步防止阻塞
-//                    messageList.forEach(pushWorker::push);
+
                     WsMessageDTO lastMessage = messageList.get(messageList.size() - 1);
 //                    msgWriter.updateMaxClientId(fromUserId, device, lastMessage.getClientMessageId());
                     CLIENT_MAX_ID_MAP.get(fromUserId)[device] = lastMessage.getClientMessageId();
@@ -212,7 +211,6 @@ public class MessageBuffer {
     }
 
     public void getUnreadMessage(WsMessageDTO wsMessageDTO) {
-        // TODO： 不应该是clientId查找
         List<Long> needToUpdate = msgReader.getWindowsMsg(RedisConstant.INBOX + wsMessageDTO.getFromUserId(), wsMessageDTO.getClientMessageId(), Long.MAX_VALUE, 0L, GlobalConstants.MAX_FRIEND, Long.class);
         List<MessageBO> result = new ArrayList<>();
         for (Long userId : needToUpdate) {
