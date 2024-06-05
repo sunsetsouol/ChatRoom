@@ -38,12 +38,14 @@ public abstract class AbstractMessage {
         PING(1, "心跳"),
         SINGLE(2, "私聊"),
         GROUP(3, "群聊"),
-        ACK(4, "ACK"),
-        BUSINESS_ACK(5, "业务ACK"),
+        ACK(4, "服务器接收到用户消息的ACK"),
+        SERVER_ACK(5, "服务器正确处理用户消息的ACK"),
         GET_MESSAGE(6, "获取消息"),
         GET_MESSAGE_ACK(7, "获取消息ACK"),
         INIT(8, "初始化"),
         FILL_EMPTY(9, "填充空消息"),
+        USER_RECEIVE_ACK(10, "用户接收到服务器消息的ACK"),
+        BUSINESS_ACK(11, "服务器之间业务ACK"),
         ;
 
         private final Integer code;

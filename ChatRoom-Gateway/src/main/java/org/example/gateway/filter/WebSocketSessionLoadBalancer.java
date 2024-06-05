@@ -23,6 +23,7 @@ import org.springframework.cloud.loadbalancer.core.NoopServiceInstanceListSuppli
 import org.springframework.cloud.loadbalancer.core.ReactorServiceInstanceLoadBalancer;
 import org.springframework.cloud.loadbalancer.core.RoundRobinLoadBalancer;
 import org.springframework.cloud.loadbalancer.core.ServiceInstanceListSupplier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -89,25 +90,26 @@ public class WebSocketSessionLoadBalancer implements ReactorServiceInstanceLoadB
     }
 
     /**
-     * 哈希环的使用，根据 userId 来查询对应的节点
+     * 哈希环的使用，根据 user 来查询对应的节点
      *
-     * @param userId      用户ID，关联了 WebSocket Session
+     * @param user      用户ID和设备，关联了 WebSocket Session
      * @param instancesId 服务名
      * @return 服务实例的 Response
      */
     @SuppressWarnings("deprecation")
-    private Response<ServiceInstance> getServiceInstanceByUserId(final String userId, String instancesId) {
-        Node node = hashRingUtil.getConsistentHashRouter().routeNode(userId);
+    private Response<ServiceInstance> getServiceInstanceByUserId(final String user, String instancesId) {
+        Node node = hashRingUtil.getConsistentHashRouter().routeNode(user);
+        String[] split = user.split(":");
         if (null != node) {
             // 获取当前注册中心的实例
             List<ServiceInstance> instances = discoveryClient.getInstances(instancesId);
             for (ServiceInstance instance : instances) {
                 log.info("当前实例: {}", instance);
-                // 如果 userId 映射后的真实节点的 IP 与某个实例 IP 一致，就转发
+                // 如果 user 映射后的真实节点的 IP 与某个实例 IP 一致，就转发
                 String key = instance.getHost() + ":" + instance.getPort();
                 if (key.equals(node.getKey())) {
-                    log.debug("当前客户端[{}]匹配到真实节点 {}", userId, node.getKey());
-                    redisCacheService.setCacheObject(RedisCacheConstants.ONLINE + userId, key);
+                    log.debug("当前客户端[{}]匹配到真实节点 {}", user, node.getKey());
+                    redisCacheService.putHashKey(RedisCacheConstants.ONLINE + split[0], split[1], key);
                     return new DefaultResponse(instance);
                 }
             }
@@ -115,7 +117,7 @@ public class WebSocketSessionLoadBalancer implements ReactorServiceInstanceLoadB
         log.warn("网关监测到当前无哈希环, 即无 WebSocket 服务实例，尝试取第一个实例，可能为 null");
         ServiceInstance serviceInstance = discoveryClient.getInstances(instancesId).get(0);
         if (Objects.nonNull(serviceInstance)){
-            redisCacheService.setCacheObject(RedisCacheConstants.ONLINE + userId, serviceInstance.getHost() + ":" + serviceInstance.getPort());
+            redisCacheService.putHashKey(RedisCacheConstants.ONLINE + split[0], split[1], serviceInstance.getHost() + ":" + serviceInstance.getPort());
         }
         return new DefaultResponse(serviceInstance);
     }
@@ -127,7 +129,10 @@ public class WebSocketSessionLoadBalancer implements ReactorServiceInstanceLoadB
      * @return userId，可能为空
      */
     protected static String getUserIdFromRequest(ServerWebExchange exchange) {
-        String token = exchange.getRequest().getHeaders().getFirst(GlobalConstants.JSONTOKEN);
+        HttpHeaders headers = exchange.getRequest().getHeaders();
+        String token = headers.getFirst(GlobalConstants.JSONTOKEN);
+
+        String device = headers.getFirst(GlobalConstants.DEVICE_TYPE);
 
         //2.1 解析token
         String json = Base64.decodeStr(token);
@@ -136,7 +141,7 @@ public class WebSocketSessionLoadBalancer implements ReactorServiceInstanceLoadB
         //2.2 获取jsonToken中的用户角色
         String user = (String) userJson.get("principal");
         UserBO userBO = JSON.parseObject(user, UserBO.class);
-        return userBO.getId().toString();
+        return userBO.getId().toString() + ":" + device;
 
 //        URI originalUrl = (URI) exchange.getAttributes().get(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR);
 //        String userId = "1";

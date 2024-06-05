@@ -109,7 +109,9 @@ public class RedisCacheService {
         }
         return JSON.parseObject(json, type);
     }
-
+    public<T> List<T> getHashAllValues(final String key, Class<T> tClass) {
+        return stringRedisTemplate.opsForHash().values(key).stream().map(o -> JSON.parseObject(o.toString(), tClass)).collect(Collectors.toList());
+    }
     /**
      * 删除单个对象
      *
@@ -126,8 +128,12 @@ public class RedisCacheService {
      * @param value 缓存的数据
      * @return 缓存数据的对象
      */
-    public <T> long setCacheSet(final String key, final Object value) {
-        Long count = stringRedisTemplate.opsForSet().add(key, JSON.toJSONString(value));
+    public <T> long setCacheSet(final String key, final Set<T> value) {
+        if (value.isEmpty()){
+            return 0;
+        }
+        String[] array = value.stream().map(JSON::toJSONString).toArray(String[]::new);
+        Long count = stringRedisTemplate.opsForSet().add(key, array);
         return count == null ? 0 : count;
     }
 
@@ -321,7 +327,7 @@ public class RedisCacheService {
      * @param score   分数
      * @return 是否插入成功
      */
-    public Boolean addZSet(final String key, final Object zSetKey, final Long score) {
+    public Boolean addZSet(final String key, final Object zSetKey, final double score) {
         return stringRedisTemplate.opsForZSet().add(key, JSON.toJSONString(zSetKey), score);
     }
 
@@ -484,6 +490,23 @@ public class RedisCacheService {
     public <T> List<T> getLastZSet(String key, long size, Class<T> tClass) {
         Set<String> set = stringRedisTemplate.opsForZSet().reverseRange(key, 0, size);
         return set.stream().map(o -> JSON.parseObject(o, tClass)).collect(Collectors.toList());
+    }
+
+    public <T> T getZSetByScore(String key, Long globalMessageId, Class<T> tClass) {
+        Set<String> set = stringRedisTemplate.opsForZSet().rangeByScore(key, globalMessageId, globalMessageId);
+        return JSON.parseObject(set.stream().findAny().orElse(null), tClass);
+    }
+
+    public <T> Map<String,T> getHashMap(String key, Class<T> tClass) {
+        return stringRedisTemplate.opsForHash().entries(key).entrySet().stream().collect(Collectors.toMap(o->o.getKey().toString(), o -> JSON.parseObject(o.getValue().toString(), tClass)));
+    }
+
+    public Boolean hasKey(String key) {
+        return stringRedisTemplate.hasKey(key);
+    }
+
+    public void removeSet(String key, Set<String> userIds) {
+        stringRedisTemplate.opsForSet().remove(key, userIds.toArray());
     }
 }
 

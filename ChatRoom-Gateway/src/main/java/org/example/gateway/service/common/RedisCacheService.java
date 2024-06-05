@@ -1,8 +1,6 @@
 package org.example.gateway.service.common;
 
 import com.alibaba.fastjson.JSON;
-import org.example.gateway.hashring.Node;
-import org.example.gateway.hashring.VirtualNode;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -283,6 +281,10 @@ public class RedisCacheService {
      */
     public void putAllHash(final String key, Map<String, String > hashMap) {
         stringRedisTemplate.opsForHash().putAll(key, hashMap);
+    }
+
+    public<T> List<T> getHashAllValues(final String key, Class<T> tClass) {
+        return stringRedisTemplate.opsForHash().values(key).stream().map(o -> JSON.parseObject(o.toString(), tClass)).collect(Collectors.toList());
     }
 
     /**

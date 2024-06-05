@@ -5,25 +5,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.exception.BusinessException;
 import org.example.onmessage.constants.ThreadPoolConstant;
-import org.example.pojo.AbstractMessage;
-import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.publish.PublishEventUtils;
 import org.example.onmessage.route.MessageBuffer;
 import org.example.onmessage.service.MessageService;
+import org.example.pojo.AbstractMessage;
 import org.example.pojo.bo.UserBO;
+import org.example.pojo.dto.WsMessageDTO;
 import org.example.pojo.vo.ResultStatusEnum;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.WebSocketMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import javax.annotation.Resource;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * @author yinjunbiao
@@ -37,7 +35,7 @@ public class OnMessageHandler implements WebSocketHandler {
     private final MessageService messageService;
     private final MessageBuffer messageBuffer;
     private final PublishEventUtils publishEventUtils;
-    @Resource(name = ThreadPoolConstant.COMMON_THREAD_POOL_NAME)
+    @Resource(name = ThreadPoolConstant.WS_MESSAGE_THREAD_POOL_NAME)
     private ThreadPoolTaskExecutor threadPoolTaskExecutor;
     @Override
     public void afterConnectionEstablished(WebSocketSession webSocketSession) throws Exception {

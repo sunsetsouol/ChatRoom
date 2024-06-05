@@ -2,8 +2,10 @@ package org.example.onmessage.publish;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.onmessage.publish.event.MessageAckToUserEvent;
+import org.example.onmessage.service.impl.AckServiceImpl;
+import org.example.pojo.AbstractMessage;
 import org.example.pojo.bo.MessageBO;
-import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.publish.event.DealMessageEvent;
 import org.example.onmessage.publish.event.MessageBusinessAckEvent;
 import org.example.onmessage.publish.event.UserOfflineEvent;
@@ -28,9 +30,10 @@ public class PublishEventUtils {
         applicationEventPublisher.publishEvent(new DealMessageEvent(source, messageBO));
     }
 
-    public void pushMessageAck(Object source, WsMessageDTO wsMessageDTO) {
-        applicationEventPublisher.publishEvent(new MessageBusinessAckEvent(source, wsMessageDTO));
+    public void pushMessageAck(Object source, MessageBO messageBO) {
+        applicationEventPublisher.publishEvent(new MessageBusinessAckEvent(source, messageBO, AbstractMessage.MessageType.USER_RECEIVE_ACK));
     }
+
 
     public void userOnline(Object source, Long userId, WebSocketSession webSocketSession) {
         applicationEventPublisher.publishEvent(new UserOnlineEvent(source, userId, webSocketSession));
@@ -38,5 +41,9 @@ public class PublishEventUtils {
 
     public void userOffline(Object source, Long userId) {
         applicationEventPublisher.publishEvent(new UserOfflineEvent(source, userId));
+    }
+
+    public void pushAckToUser(Object source, MessageBO message, Long ackTargetUserId) {
+        applicationEventPublisher.publishEvent(new MessageAckToUserEvent(source, message, ackTargetUserId, AbstractMessage.MessageType.SERVER_ACK));
     }
 }

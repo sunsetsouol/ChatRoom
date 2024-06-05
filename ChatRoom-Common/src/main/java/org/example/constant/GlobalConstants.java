@@ -20,4 +20,5 @@ public interface GlobalConstants {
 
     String JSONTOKEN = "jsonToken";
     String LAST_GLOBAL_MESSAGE_ID = "lastGlobalMessageId";
+    String DEVICE_TYPE = "Device";
 }

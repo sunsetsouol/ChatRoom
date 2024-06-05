@@ -13,6 +13,7 @@ import org.example.onmessage.adapter.MessageAdapter;
 import org.example.onmessage.constants.RedisConstant;
 import org.example.onmessage.dao.MsgReader;
 import org.example.onmessage.dao.MsgWriter;
+import org.example.onmessage.mq.service.MessageService;
 import org.example.pojo.AbstractMessage;
 import org.example.pojo.bo.MessageBO;
 import org.example.pojo.dto.WsMessageDTO;
@@ -42,10 +43,10 @@ public class MessageBuffer {
     private final RedissonClient redissonClient;
     private final MsgReader msgReader;
     private final MsgWriter msgWriter;
+    private final MessageService messageService;
     private final PushWorker pushWorker;
     private final PublishEventUtils publishEventUtils;
     private final IdGeneratorStrategyFactory idGeneratorStrategyFactory;
-//    private final IdGenerator idGenerator = idGeneratorStrategyFactory.getIdGeneratorStrategy(IdGenType.SNOWFLAKE.type);
 
 
     public void handleMsg(WsMessageDTO wsMessageDTO) {
@@ -85,33 +86,48 @@ public class MessageBuffer {
                     // 消息有序到达，直接发送当前消息，并且发送缓存区有序的消息
                     log.info("{} 消息 {} 有序到达，直接发送当前消息，并且发送缓存区有序的消息", AbstractMessage.DeviceType.getType(device), clientMessageId);
                     // 更新当前用户设备最大id
-                    List<MessageBO> messageList = getMessage(device, fromUserId, clientMessageId);
+                    List<MessageBO> messageList = generaMessageBo(device, fromUserId, clientMessageId);
                     // 有序到达直接推给用户并且保存到持久化
 //                    pushWorker.push(messageList);
+                    messageList.forEach(messageService::push2mq);
 
                     // TODO：异步防止阻塞
-                    messageList.forEach(pushWorker::push);
-                    MessageBO lastMessage = messageList.get(messageList.size() - 1);
+//                    messageList.forEach(pushWorker::push);
+                    WsMessageDTO lastMessage = messageList.get(messageList.size() - 1);
 //                    msgWriter.updateMaxClientId(fromUserId, device, lastMessage.getClientMessageId());
                     CLIENT_MAX_ID_MAP.get(fromUserId)[device] = lastMessage.getClientMessageId();
+                    curMaxId = lastMessage.getClientMessageId();;
                 } else if (clientMessageId <= curMaxId) {
-                    // 重复消息，直接重发
+                    // 重复消息
                     log.info("{} 消息 {} 重复到达，直接重发", AbstractMessage.DeviceType.getType(device), clientMessageId);
 
-                    // 找到消息重发
-                    MessageBO message = getMessageByClientId(wsMessageDTO);
-                    if (Objects.nonNull(message)) {
-                        pushWorker.push(message);
+                    MessageBO message = msgReader.getMessageByClientId(wsMessageDTO);
+                    // 先判断是否ack过
+                    if (msgReader.isBusinessAcked(message)) {
+                        // 如果ack过，直接ack
+                        MessageBO businessAckMessage = MessageAdapter.getBusinessAckMessage(message);
+                        GlobalWsMap.sendText(fromUserId, JSON.toJSONString(businessAckMessage));
                     } else {
-                        // 如果找不到消息说明已经ack了
-                        publishEventUtils.pushMessageAck(this, wsMessageDTO);
+                        // 如果没有ack过，重发
+                        messageService.push2mq(message);
                     }
+
+//                    // 找到消息重发
+//                    MessageBO message = getMessageByClientId(wsMessageDTO);
+//                    if (Objects.nonNull(message)) {
+//                        pushWorker.push(message);
+//                    } else {
+//                        // 如果找不到消息说明已经ack了
+//                        publishEventUtils.pushMessageAck(this, wsMessageDTO);
+//                    }
 
                 }
                 // 剩下无序到达情况上面保存后就可以了
 
             }
-
+            wsMessageDTO.setClientMessageId(curMaxId);
+            WsMessageDTO ack1Message = MessageAdapter.getAck1Message(wsMessageDTO);
+            GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), wsMessageDTO.getDevice(), JSON.toJSONString(ack1Message));
         } catch (Exception e) {
             e.printStackTrace();
             log.error("消息处理失败", e);
@@ -122,15 +138,15 @@ public class MessageBuffer {
 
     }
 
-    public MessageBO getMessageByClientId(WsMessageDTO wsMessageDTO) {
+//    public MessageBO getMessageByClientId(WsMessageDTO wsMessageDTO) {
 //        // 为什么不去tem根据score找呢？因为没有全局唯一id
 //        List<MessageBO> messageBOList = msgReader.getWindowsMsg(RedisConstant.MESSAGE + wsMessageDTO.getFromUserId(), 0, Long.MAX_VALUE, 0L, BUFFER_SIZE, MessageBO.class);
 //        return messageBOList.stream().filter(messageBO -> wsMessageDTO.getClientMessageId().equals(messageBO.getClientMessageId())).findFirst().orElse(null);
-        return msgReader.getMessageByClientId(wsMessageDTO);
+//        return msgReader.getMessageByClientId(wsMessageDTO);
+//
+//    }
 
-    }
-
-    private List<MessageBO> getMessage(Integer device, Long fromUserId, Long clientId) {
+    private List<MessageBO> generaMessageBo(Integer device, Long fromUserId, Long clientId) {
 
         IdGenerator idGeneratorStrategy = idGeneratorStrategyFactory.getIdGeneratorStrategy(IdGenType.SNOWFLAKE.type);
 
@@ -164,8 +180,10 @@ public class MessageBuffer {
             result.add(messageBO);
         }
         List<MessageBO> messageBOS = result.subList(0, subIndex);
-        // 保存到持久化
-        msgWriter.saveDurably(messageBOS);
+
+        messageBOS.forEach(messageBO -> {
+            msgWriter.saveMessageIdMap(fromUserId, device, messageBO.getClientMessageId(), messageBO.getId());
+        });
         return messageBOS;
     }
 

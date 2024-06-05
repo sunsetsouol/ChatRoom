@@ -12,4 +12,5 @@ public interface RedisCacheConstants {
     Long MEMBER_UPPER = 200L;
 
     String HASH_RING = "hash_ring";
+    String GROUP_MESSAGE_ACK_KEY = "group_message_ack_key";
 }

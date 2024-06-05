@@ -3,12 +3,14 @@ package org.example.onmessage.dao;
 import lombok.RequiredArgsConstructor;
 import org.example.constant.RedisCacheConstants;
 import org.example.onmessage.constants.RedisConstant;
-import org.example.pojo.AbstractMessage;
+import org.example.onmessage.publish.PublishEventUtils;
 import org.example.pojo.bo.MessageBO;
 import org.example.pojo.dto.WsMessageDTO;
 import org.example.onmessage.service.common.RedisCacheService;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -22,6 +24,7 @@ import java.util.Set;
 public class MsgWriter {
     private final RedisCacheService redisCacheService;
     private final MsgReader msgReader;
+    private final PublishEventUtils publishEventUtils;
 
     public void saveTem(WsMessageDTO wsMessageDTO) {
         String key = RedisConstant.TEM_MESSAGE + wsMessageDTO.getFromUserId() + ":" + wsMessageDTO.getDevice();
@@ -29,13 +32,18 @@ public class MsgWriter {
 //        redisCacheService.setCacheObject(RedisConstant.ACK + wsMessageDTO.getFromUserId() + ":" + wsMessageDTO.getDevice(), "", RedisConstant.ACK_EXPIRE_TIME, TimeUnit.SECONDS);
     }
 
+    public void saveDurably(MessageBO message){
+//        saveMessageIdMap(message.getFromUserId(), message.getDevice(), message.getClientMessageId(), message.getId());
+
+//        if (AbstractMessage.MessageType.SINGLE.getCode().equals(message.getMessageType())) {
+//            saveSingleOfflineDurably(message);
+//        } else if (AbstractMessage.MessageType.GROUP.getCode().equals(message.getMessageType())) {
+//            saveDurably(message);
+//        }
+    }
     public void saveDurably(List<MessageBO> messageBOS) {
         for (MessageBO message : messageBOS) {
-            if (AbstractMessage.MessageType.SINGLE.getCode().equals(message.getMessageType())) {
-                saveSingleDurably(message);
-            } else if (AbstractMessage.MessageType.GROUP.getCode().equals(message.getMessageType())) {
-                saveGroupDurably(message);
-            }
+            saveDurably(message);
         }
 //        Long fromUserId = messageBOS.stream().findAny().orElseThrow(() -> new BusinessException(ResultStatusEnum.FROM_USER_ID_EMPTY)).getFromUserId();
 //        Integer device = messageBOS.stream().findAny().orElseThrow(() -> new BusinessException(ResultStatusEnum.DEVICE_EMPTY)).getDevice();
@@ -52,15 +60,19 @@ public class MsgWriter {
 
     }
 
-    private void saveGroupDurably(MessageBO message) {
+    public void saveDurably(MessageBO message, Collection<Long> memberIds) {
         // 获取群聊人数，但是我们限制了200人，所以还是逐个通知
-        Set<Long> userIds = redisCacheService.getCacheSet(RedisCacheConstants.ROOM_MEMBER + message.getTargetId(), Long.class);
-        userIds.forEach(userId -> redisCacheService.addZSet(RedisConstant.INBOX + userId, message, message.getId()));
+//        Set<Long> userIds = redisCacheService.getCacheSet(RedisCacheConstants.ROOM_MEMBER + message.getTargetId(), Long.class);
+        if (!CollectionUtils.isEmpty(memberIds)){
+            memberIds.forEach(userId -> redisCacheService.addZSet(RedisConstant.INBOX + userId, message, message.getId()));
+        }
     }
 
-    private void saveSingleDurably(MessageBO message) {
-        redisCacheService.addZSet(RedisConstant.INBOX + message.getFromUserId(), message, message.getId());
+    public void saveSingleOfflineDurably(MessageBO message) {
+//        redisCacheService.addZSet(RedisConstant.INBOX + message.getFromUserId(), message, message.getId());
         redisCacheService.addZSet(RedisConstant.INBOX + message.getTargetId(), message, message.getId());
+//        // 返回ack
+//        publishEventUtils.pushMessageAck(this, message, message.getFromUserId(), AbstractMessage.MessageType.SERVER_ACK);
     }
 
     public void saveSingleChatMsg(MessageBO messageBO) {
@@ -85,7 +97,7 @@ public class MsgWriter {
 //    }
 
     public void saveMessageIdMap(Long fromUserId, Integer device, Long clientMessageId, Long messageId) {
-        redisCacheService.addZSet(RedisConstant.CLIENT_ID_MAP + fromUserId + ":" + device, messageId, clientMessageId);
+        redisCacheService.putHashKey(RedisConstant.CLIENT_ID_MAP + fromUserId + ":" + device, clientMessageId.toString(), messageId.toString());
     }
 
     public void saveSingleInboxMsg(MessageBO message) {
@@ -111,6 +123,11 @@ public class MsgWriter {
                 redisCacheService.addZSet(RedisConstant.GROUP_INBOX + memberId, message.getTargetId(), message.getId());
             });
         }
+    }
+
+    public void saveDurably(MessageBO message, Long receiveUser) {
+
+        redisCacheService.addZSet(RedisConstant.INBOX + receiveUser, message, message.getId());
     }
 
 //    public void updateMaxClientId(Long fromUserId, Integer device, Long clientMessageId) {

@@ -3,22 +3,20 @@ package org.example.pojo.bo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.pojo.dto.WsMessageDTO;
+
+import java.util.Set;
 
 /**
  * @author yinjunbiao
  * @version 1.0
- * @date 2024/5/9
+ * @date 2024/6/5
  */
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
-//@Builder
-public class MessageBO extends WsMessageDTO {
-
-    private Long id;
-
-
+@Data
+@Builder
+public class BusinessAckMessage {
+    private MessageBO message;
+    private Set<String> userIds;
 }

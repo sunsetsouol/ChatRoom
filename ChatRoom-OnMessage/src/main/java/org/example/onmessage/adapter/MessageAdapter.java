@@ -1,6 +1,7 @@
 package org.example.onmessage.adapter;
 
 import org.example.pojo.AbstractMessage;
+import org.example.pojo.bo.MessageBO;
 import org.example.pojo.dto.WsMessageDTO;
 
 /**
@@ -14,8 +15,13 @@ public class MessageAdapter {
         return getAckWsMessageDTO(wsMessageDTO, AbstractMessage.MessageType.ACK);
     }
 
-    public static WsMessageDTO getBusinessAckMessage(WsMessageDTO wsMessageDTO){
-        return getAckWsMessageDTO(wsMessageDTO, AbstractMessage.MessageType.BUSINESS_ACK);
+    public static MessageBO getBusinessAckMessage(MessageBO messageBO){
+        MessageBO copy = new MessageBO();
+        copy.setClientMessageId(messageBO.getClientMessageId());
+        copy.setMessageType(AbstractMessage.MessageType.SERVER_ACK.getCode());
+        copy.setDevice(messageBO.getDevice());
+        copy.setId(messageBO.getId());
+        return copy;
     }
 
     private static WsMessageDTO getAckWsMessageDTO(WsMessageDTO wsMessageDTO, AbstractMessage.MessageType ack) {

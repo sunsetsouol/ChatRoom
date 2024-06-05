@@ -9,10 +9,12 @@ public interface RabbitMQConstant {
 
     String WS_EXCHANGE = "ws_exchange";
 
-    String WS_QUEUE = "ws_queue";
-    String WS_ROUTING_KEY = "ws.a";
 
     String MQ_GROUP_ROUTING_KEY = "ws.group";
     String IP_QUEUE = "ipQueue";
     String DEFAULT_QUEUE = "defaultQueue";
+    String MQ_GROUP_EXCHANGE = "ws.group.exchange";
+    String MQ_GROUP_QUEUE = "ws.group.queue";
+    String MQ_ACK_EXCHANGE = "mq.ack.exchange";
+    String MQ_ACK_QUEUE = "mq.ack.queue";
 }

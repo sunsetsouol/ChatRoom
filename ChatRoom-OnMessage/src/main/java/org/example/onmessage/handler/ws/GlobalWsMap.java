@@ -1,12 +1,15 @@
 package org.example.onmessage.handler.ws;
 
+import cn.hutool.core.collection.ConcurrentHashSet;
 import lombok.extern.slf4j.Slf4j;
+import org.example.pojo.bo.MessageBO;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -22,6 +25,7 @@ public class GlobalWsMap {
     public final static ConcurrentHashMap<Long, WebSocketSession> MOBILE_SESSION = new ConcurrentHashMap<>();
 
     private final static ArrayList<ConcurrentHashMap<Long, WebSocketSession>> SESSION_MAP = new ArrayList<>();
+    public final static ConcurrentHashMap<Long, ConcurrentHashSet<Long>> MESSAGE_ACK_CACHE = new ConcurrentHashMap<>();
     static {
         SESSION_MAP.add(PC_SESSION);
         SESSION_MAP.add(MOBILE_SESSION);
@@ -74,5 +78,15 @@ public class GlobalWsMap {
             }
         }
         return true;
+    }
+
+    public static Boolean coreDeviceIsOnline(Long targetId) {
+        WebSocketSession webSocketSession = PC_SESSION.get(targetId);
+        return Objects.nonNull(webSocketSession) && webSocketSession.isOpen();
+    }
+
+    public static Boolean sendText(Set<Long> userIds, MessageBO message) {
+        MESSAGE_ACK_CACHE.computeIfAbsent(message.getId(), k -> new ConcurrentHashSet<>()).addAll(userIds);
+        return null;
     }
 }

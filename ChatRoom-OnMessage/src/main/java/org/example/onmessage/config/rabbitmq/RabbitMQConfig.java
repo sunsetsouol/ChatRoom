@@ -5,6 +5,8 @@ import org.example.onmessage.constants.RabbitMQConstant;
 import org.example.onmessage.publish.PublishEventUtils;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.retry.MessageRecoverer;
+import org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -29,30 +31,71 @@ public class RabbitMQConfig implements ApplicationContextAware {
 
     @Value("${spring.rabbitmq.listener.queues}")
     private String[] queueNames;
+    @Bean
+    public DirectExchange errorMessageExchange(){
+        return new DirectExchange("error.order.direct");
+    }
+    @Bean
+    public Queue errorQueue(){
+        return new Queue("error.order.queue", true);
+    }
+    @Bean
+    public Binding errorBinding(Queue errorQueue, DirectExchange errorMessageExchange){
+        return BindingBuilder.bind(errorQueue).to(errorMessageExchange).with("error");
+    }
 
     @Bean
+    public MessageRecoverer republishMessageRecoverer(RabbitTemplate rabbitTemplate){
+        return new RepublishMessageRecoverer(rabbitTemplate, "error.order.direct", "error");
+    }
+
+    @Bean(RabbitMQConstant.WS_EXCHANGE)
     public Exchange exchange(){
         return ExchangeBuilder.topicExchange(RabbitMQConstant.WS_EXCHANGE).durable(true).build();
     }
+
+    @Bean(RabbitMQConstant.MQ_GROUP_EXCHANGE)
+    public Exchange groupExchange(){
+        return ExchangeBuilder.topicExchange(RabbitMQConstant.MQ_GROUP_EXCHANGE).durable(true).build();
+    }
+
+    @Bean(RabbitMQConstant.MQ_ACK_EXCHANGE)
+    public Exchange ackExchange(){
+        return ExchangeBuilder.topicExchange(RabbitMQConstant.MQ_ACK_EXCHANGE).durable(true).build();
+    }
+
+
 
     @Bean(RabbitMQConstant.IP_QUEUE)
     public Queue queue(){
         return QueueBuilder.durable(queueNames[0]).build();
     }
 
-    @Bean(RabbitMQConstant.DEFAULT_QUEUE)
-    public Queue defaultQueue(){
-        return QueueBuilder.durable(RabbitMQConstant.DEFAULT_QUEUE).build();
+    @Bean(RabbitMQConstant.MQ_GROUP_QUEUE)
+    public Queue groupQueue(){
+        return QueueBuilder.durable(RabbitMQConstant.MQ_GROUP_QUEUE + "." +queueNames[0]).build();
     }
 
+    @Bean(RabbitMQConstant.MQ_ACK_QUEUE)
+    public Queue ackQueue(){
+        return QueueBuilder.durable(RabbitMQConstant.MQ_ACK_QUEUE + "." +queueNames[0]).build();
+    }
+
+
+
     @Bean
-    public Binding bindingSingle(@Qualifier(RabbitMQConstant.IP_QUEUE) Queue queue,  Exchange exchange) {
+    public Binding bindingSingle(@Qualifier(RabbitMQConstant.IP_QUEUE) Queue queue,  @Qualifier(RabbitMQConstant.WS_EXCHANGE) Exchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with(queueNames[0]).noargs();
     }
 
     @Bean
-    public Binding bindingGroup(@Qualifier(RabbitMQConstant.IP_QUEUE) Queue queue,  Exchange exchange){
-        return BindingBuilder.bind(queue).to(exchange).with(RabbitMQConstant.MQ_GROUP_ROUTING_KEY).noargs();
+    public Binding bindingGroup(@Qualifier(RabbitMQConstant.MQ_GROUP_QUEUE) Queue queue, @Qualifier(RabbitMQConstant.MQ_GROUP_EXCHANGE) Exchange exchange){
+        return BindingBuilder.bind(queue).to(exchange).with(queueNames[0]).noargs();
+    }
+
+    @Bean
+    public Binding bindingAck(@Qualifier(RabbitMQConstant.MQ_ACK_QUEUE) Queue queue, @Qualifier(RabbitMQConstant.MQ_ACK_EXCHANGE) Exchange exchange){
+        return BindingBuilder.bind(queue).to(exchange).with(queueNames[0]).noargs();
     }
 
     @Override

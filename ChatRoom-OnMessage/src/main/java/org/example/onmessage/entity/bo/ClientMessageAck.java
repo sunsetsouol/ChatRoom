@@ -32,7 +32,7 @@
 //    @Getter
 //    public enum AckType {
 //        FIRST_ACK(1),
-//        BUSINESS_ACK(2)
+//        SERVER_ACK(2)
 //        ;
 //        private final Integer code;
 //

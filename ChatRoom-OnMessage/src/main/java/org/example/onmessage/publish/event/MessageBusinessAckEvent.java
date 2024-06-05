@@ -1,7 +1,8 @@
 package org.example.onmessage.publish.event;
 
 import lombok.Getter;
-import org.example.pojo.dto.WsMessageDTO;
+import org.example.pojo.AbstractMessage;
+import org.example.pojo.bo.MessageBO;
 import org.springframework.context.ApplicationEvent;
 
 /**
@@ -11,10 +12,12 @@ import org.springframework.context.ApplicationEvent;
  */
 @Getter
 public class MessageBusinessAckEvent extends ApplicationEvent {
-    private WsMessageDTO wsMessageDTO;
-    public MessageBusinessAckEvent(Object source, WsMessageDTO wsMessageDTO) {
+    private MessageBO messageBO;
+    private AbstractMessage.MessageType messageType;
+    public MessageBusinessAckEvent(Object source, MessageBO messageBO, AbstractMessage.MessageType businessAck) {
         super(source);
-        this.wsMessageDTO = wsMessageDTO;
+        this.messageBO = messageBO;
+        this.messageType = businessAck;
     }
 
 }

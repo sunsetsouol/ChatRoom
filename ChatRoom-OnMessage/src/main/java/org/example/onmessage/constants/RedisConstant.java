@@ -14,7 +14,6 @@ public interface RedisConstant {
 
     String MESSAGE = "message:";
     String ACK = "ack:";
-    Integer ACK_EXPIRE_TIME = 10;
     String EXPIRED = "expired";
     String DEL = "del";
     String SINGLE_CHAT = "single_chat:";
@@ -24,4 +23,9 @@ public interface RedisConstant {
 
     String GROUP_CHAT = "group_chat:";
     String GROUP_INBOX = "group_inbox:";
+    String BUSINESS_ACK = "business_ack:";
+
+    String ALREADY_ACK = "already_ack:";
+
+    Integer ACK_EXPIRE_TIME = 60;
 }

@@ -1,12 +1,10 @@
 package org.example.onmessage.limiter;
 
-import com.alibaba.fastjson.JSON;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.onmessage.adapter.MessageAdapter;
+import org.example.onmessage.mq.service.MessageService;
+import org.example.onmessage.route.MessageBuffer;
 import org.example.pojo.dto.WsMessageDTO;
-import org.example.onmessage.handler.ws.GlobalWsMap;
-import org.example.onmessage.mq.service.MQService;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,7 +17,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SlidingWindowLimiter {
 
-    private final MQService mqService;
+    private final MessageService messageService;
+    private final MessageBuffer messageBuffer;
     // TODO：滑动窗口限流
     public boolean limiter(WsMessageDTO wsMessageDTO){
         return true;
@@ -30,11 +29,12 @@ public class SlidingWindowLimiter {
             log.info("消息推送太频繁，直接丢弃");
             return;
         }
+        messageBuffer.handleMsg(wsMessageDTO);
         // 消息正常推送
         log.info("消息正常推送:{}", wsMessageDTO);
-        mqService.push2mq(wsMessageDTO);
-        // ack
-        WsMessageDTO ack1Message = MessageAdapter.getAck1Message(wsMessageDTO);
-        GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), wsMessageDTO.getDevice(), JSON.toJSONString(ack1Message));
+//        messageService.push2mq(wsMessageDTO);
+//        // ack
+//        WsMessageDTO ack1Message = MessageAdapter.getAck1Message(wsMessageDTO);
+//        GlobalWsMap.sendText(wsMessageDTO.getFromUserId(), wsMessageDTO.getDevice(), JSON.toJSONString(ack1Message));
     }
 }
