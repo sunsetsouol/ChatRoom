@@ -1,26 +1,23 @@
 package org.example.onmessage;
 
-import com.alibaba.fastjson.JSON;
 import org.example.IdStrategy.IdGen.IdGeneratorStrategyFactory;
 import org.example.onmessage.mq.service.MessageService;
 import org.example.onmessage.service.common.RedisCacheService;
-import org.example.pojo.bo.MessageBO;
+import org.example.onmessage.utils.JavaCVUtil;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author yinjunbiao
@@ -46,9 +43,29 @@ public class OnMessageApplicationTest {
     private RedisCacheService redisCacheService;
     @Test
     public void contextLoads() throws IOException {
-        stringRedisTemplate.opsForSet().add("a","b");
-        stringRedisTemplate.opsForSet().remove("a","b");
-        System.out.println(stringRedisTemplate.hasKey("a"));
+        String convert = JavaCVUtil.convert(new File("E:\\g\\Python\\code\\ftp\\client\\陈奕迅 - 岁月如歌.mp4"));
+        System.out.println(convert);
+//        DefaultRedisScript<List> sliding = new DefaultRedisScript<>();
+//        sliding.setLocation(new ClassPathResource("sliding_window_limiter.lua"));
+//        sliding.setResultType(List.class);
+//        List<String > keys = new ArrayList<>();
+//        keys.add("a");
+//        keys.add(String.valueOf(System.currentTimeMillis()));
+////        System.out.println(stringRedisTemplate.hasKey("a"));
+//        List<?> result = stringRedisTemplate.execute(
+//                sliding,
+////                Collections.emptyList()
+//                keys,
+//                "10",
+//                "10",
+//                String.valueOf(System.currentTimeMillis())
+//        );
+////        List<?> result1 = (List<?>) result;
+//        for (Object o : result) {
+//            System.out.println(o);
+//        }
+//        System.out.println(result);
+//        System.out.println(execute);
 //        stringRedisTemplate.opsForHash().put("a","k","v");
 //        stringRedisTemplate.opsForHash().delete("a","k");
 

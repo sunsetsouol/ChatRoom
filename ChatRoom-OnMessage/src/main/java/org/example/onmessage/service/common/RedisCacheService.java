@@ -1,6 +1,7 @@
 package org.example.onmessage.service.common;
 
 import com.alibaba.fastjson.JSON;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -507,6 +508,10 @@ public class RedisCacheService {
 
     public void removeSet(String key, Set<String> userIds) {
         stringRedisTemplate.opsForSet().remove(key, userIds.toArray());
+    }
+
+    public <T>T  execute(DefaultRedisScript<T> script, List<String> keys, Object... args) {
+        return (T) redisTemplate.execute(script, keys, args);
     }
 }
 

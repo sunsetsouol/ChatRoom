@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DownLinkMessageRoute {
     private final MessageBuffer messageBuffer;
-    private final SlidingWindowLimiter slidingWindowLimiter;
 
     /**
      * 下行消息推送
@@ -29,7 +28,10 @@ public class DownLinkMessageRoute {
         if (wsMessageDTO.getMessageType().equals(AbstractMessage.MessageType.GET_MESSAGE.getCode())){
 //            messageBuffer.getUnreadMessage(wsMessageDTO);
         }else {
-            slidingWindowLimiter.handleMessage(wsMessageDTO);
+
+            messageBuffer.handleMsg(wsMessageDTO);
+            // 消息正常推送
+            log.info("消息正常推送:{}", wsMessageDTO);
         }
     }
 }
